@@ -261,7 +261,12 @@ def gemini_llm(messages, chain, max_tokens=700):
         "generationConfig": {"temperature": 0.6, "topP": 0.9, "maxOutputTokens": max_tokens},
     }
     last = None
-    for model in dict.fromkeys(chain):
+    refreshed = False
+    work = list(dict.fromkeys(chain))
+    i = 0
+    while i < len(work):
+        model = work[i]
+        i += 1
         try:
             resp = requests.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
@@ -274,15 +279,88 @@ def gemini_llm(messages, chain, max_tokens=700):
                 parts = data["candidates"][0]["content"]["parts"]
                 return "".join(p.get("text", "") for p in parts).strip()
             last = f"gemini {model} HTTP {resp.status_code}"
+            if resp.status_code == 404 and not refreshed:
+                # A listed model vanished — re-detect what the key can use, once.
+                refreshed = True
+                fresh = detect_gemini_chain(force=True)
+                if fresh:
+                    work = list(dict.fromkeys(fresh))
+                    i = 0
         except Exception as e:  # noqa: BLE001
             last = f"gemini {model}: {e}"
     raise RuntimeError(last or "gemini failed")
 
 
+# ------- auto-detect: ask the API which models this key can actually use -------
+
+_GEMINI_MODELS_CACHE = {"at": 0.0, "chain": None}
+_MODELS_TTL = 6 * 3600
+
+
+def _model_rank(name):
+    """Lower sorts first; None excludes non-chat models (TTS/image/audio/...)."""
+    import re
+
+    n = name.lower()
+    if any(x in n for x in ("tts", "image", "audio", "embedding", "aqa",
+                            "robotics", "computer-use", "video", "music")):
+        return None
+    ver = 0.0
+    mv = re.search(r"gemini-(\d+(?:\.\d+)?)", n)
+    if mv:
+        try:
+            ver = float(mv.group(1))
+        except ValueError:
+            pass
+    if "flash" in n and "lite" in n:
+        tier = 0
+    elif "flash" in n:
+        tier = 1
+    elif "pro" in n:
+        tier = 2
+    else:
+        tier = 3
+    return (tier, -ver)
+
+
+def detect_gemini_chain(force=False):
+    """Live model list for the key, ranked Flash-Lite first. Cached 6h;
+    falls back to the static chain when the list call fails."""
+    import time
+
+    now = time.time()
+    if (not force and _GEMINI_MODELS_CACHE["chain"]
+            and now - _GEMINI_MODELS_CACHE["at"] < _MODELS_TTL):
+        return _GEMINI_MODELS_CACHE["chain"]
+    try:
+        resp = requests.get(
+            "https://generativelanguage.googleapis.com/v1beta/models",
+            headers={"x-goog-api-key": GEMINI_API_KEY},
+            timeout=20,
+        )
+        if resp.status_code == 200:
+            ranked = []
+            for mdl in resp.json().get("models", []):
+                if "generateContent" not in mdl.get("supportedGenerationMethods", []):
+                    continue
+                short = mdl.get("name", "").removeprefix("models/")
+                rank = _model_rank(short)
+                if rank is not None:
+                    ranked.append((rank, short))
+            ranked.sort()
+            chain = [s for _, s in ranked[:4]]
+            if chain:
+                _GEMINI_MODELS_CACHE.update(at=now, chain=chain)
+                return chain
+    except Exception as e:  # noqa: BLE001
+        print("model detect failed:", e, flush=True)
+    return _GEMINI_MODELS_CACHE["chain"] or MODELS["lite"]["chain"]
+
+
 def llm(messages, model_key):
     m = MODELS[model_key]
     if m["provider"] == "gemini":
-        return gemini_llm(messages, m["chain"])
+        return gemini_llm(messages, detect_gemini_chain())
     return groq_llm(messages, m["chain"])
 
 # ---------------- chat logic ----------------
