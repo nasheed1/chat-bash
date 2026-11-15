@@ -79,7 +79,7 @@ MODELS = {
         "chain": ["llama-3.1-8b-instant", "openai/gpt-oss-20b"],
     },
 }
-DEFAULT_MODEL = "pro"
+DEFAULT_MODEL = "pro" if GROQ_API_KEY else "lite"
 
 SYSTEM_PROMPT = f"""তুমি "{APP_NAME}" — বাংলাদেশের জন্য তৈরি একটি AI সহকারী। তুমি সম্পূর্ণ ফ্রি ও ওপেন প্রযুক্তিতে বানানো — কোনো কোটি টাকার সরকারি প্রকল্প নও।
 
@@ -423,7 +423,7 @@ let history=[], currentUser=null, remaining={};
 
 MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.key;
   o.textContent=m.name+' — '+m.desc; modelSel.appendChild(o);});
-modelSel.value='pro';
+modelSel.value='__DEFAULT_MODEL__';
 
 function showRemaining(){
   const m=MODELS.find(x=>x.key===modelSel.value);
@@ -508,6 +508,7 @@ def home():
     page = PAGE.replace("__APP_NAME__", APP_NAME)
     page = page.replace("__FB_CONFIG__", FIREBASE_WEB_CONFIG_JSON or "{}")
     page = page.replace("__MODELS_JSON__", json.dumps(public_models(), ensure_ascii=False))
+    page = page.replace("__DEFAULT_MODEL__", DEFAULT_MODEL)
     return page, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
