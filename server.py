@@ -552,7 +552,11 @@ if(AUTH_ON){
     }
   });
   document.getElementById('gbtn').onclick=async()=>{
-    try{ await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+    const prov=new firebase.auth.GoogleAuthProvider();
+    try{
+      if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
+      else{ await firebase.auth().signInWithPopup(prov); }
+    }
     catch(e){ document.getElementById('lerr').textContent='লগইন হয়নি: '+e.message; }
   };
 }else{
@@ -565,6 +569,7 @@ form.onsubmit=async e=>{
   const text=q.value.trim(); if(!text) return;
   if(AUTH_ON && !currentUser){ loginEl.style.display='flex'; return; }
   q.value=''; add(text,'u'); send.disabled=true;
+  const ch=document.querySelector('.chips'); if(ch) ch.style.display='none';
   const wait=add('ভাবছি ','a'); wait.classList.add('dots');
   wait.innerHTML='ভাবছি <span>.</span><span>.</span><span>.</span>';
   try{
