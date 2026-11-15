@@ -1,0 +1,1 @@
+{"name":"chat-bash-app","version":"1.0.0","private":true,"description":"Chat Bash — Android wrapper (loads the live web app) packaged with Capacitor.","license":"MIT","engines":{"node":">=18"},"dependencies":{"@capacitor/android":"^6.2.0","@capacitor/core":"^6.2.0"},"devDependencies":{"@capacitor/assets":"^3.0.5","@capacitor/cli":"^6.2.0"}}
