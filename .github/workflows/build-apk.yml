@@ -1,0 +1,61 @@
+name: Build Android APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        working-directory: android-app
+        run: npm install --no-audit --no-fund
+
+      - name: Create the Android project (android/ is generated, not committed)
+        working-directory: android-app
+        run: npx cap add android
+
+      - name: Generate launcher icons
+        working-directory: android-app
+        run: npx capacitor-assets generate --android
+
+      - name: Sync web files into Android
+        working-directory: android-app
+        run: npx cap sync android
+
+      - name: Build APK (debug)
+        working-directory: android-app
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/ChatBash.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ChatBash-apk
+          path: ChatBash.apk
+          if-no-files-found: error
+
+      - name: Attach APK to the GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ChatBash.apk
