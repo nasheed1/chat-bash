@@ -656,10 +656,12 @@ function loadChat(c){
   chipsEl.style.display=pairs.length?'none':'flex';
   chat.scrollTop=chat.scrollHeight; renderHist();
 }
+/* keyboard only opens when the user taps the input (mouse devices may auto-focus) */
+function focusQ(){ if(window.matchMedia && matchMedia('(pointer:fine)').matches) q.focus(); }
 function newChat(){
   pairs=[]; currentId=null; chat.innerHTML='';
   const g=document.createElement('div'); g.className='msg a'; g.textContent=GREETING; chat.appendChild(g);
-  chipsEl.style.display='flex'; q.value=''; syncSend(); q.focus(); renderHist();
+  chipsEl.style.display='flex'; q.value=''; syncSend(); focusQ(); renderHist();
 }
 
 /* ---------------- messages ---------------- */
@@ -772,7 +774,7 @@ $('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); a
 $('pm-new').onclick=()=>{ closeMenus(); newChat(); };
 $('pm-hist').onclick=()=>{ closeMenus(); openDrawer(); };
 $('pm-model').onclick=()=>{ closeMenus(); const i=MODELS.findIndex(m=>m.key===modelSel.value);
-  modelSel.value=MODELS[(i+1)%MODELS.length].key; toast('মডেল: '+MODELS[(i+1)%MODELS.length].name); q.focus(); };
+  modelSel.value=MODELS[(i+1)%MODELS.length].key; toast('মডেল: '+MODELS[(i+1)%MODELS.length].name); focusQ(); };
 
 /* ---------------- chips ---------------- */
 document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ q.value=c.textContent; form.requestSubmit(); });
@@ -852,10 +854,10 @@ form.onsubmit=async e=>{
       if(data.remaining){remaining=data.remaining; renderAcct();} }
     else setRich(wait,'কিছু একটা সমস্যা হয়েছে।');
   }catch(err){ wait.classList.remove('dots'); setRich(wait,'নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।'); }
-  send.disabled=false; q.focus();
+  send.disabled=false; focusQ();
 };
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
-q.focus();
+focusQ();
 </script>
 </body>
 </html>
