@@ -547,7 +547,6 @@ PAGE = r"""<!DOCTYPE html>
   .note svg{width:13px;height:13px;vertical-align:-1.5px}
   #newchat svg{width:15px;height:15px;vertical-align:-2.5px;margin-right:5px}
   .dhead b svg{width:19px;height:19px;vertical-align:-4px;margin-right:5px}
-  #login h2 svg{width:23px;height:23px;vertical-align:-4.5px;margin-right:6px}
   #plusmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
                    font-family:inherit;font-size:14.5px;padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
   #plusmenu button:hover{background:var(--bubble)}
@@ -575,13 +574,22 @@ PAGE = r"""<!DOCTYPE html>
          opacity:0;pointer-events:none;transition:all .25s;z-index:50;max-width:88vw;text-align:center}
   #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   /* ---------- login ---------- */
-  #login{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
-  #login .card{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:20px;
-       padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-  #login h2{margin-bottom:8px;font-size:21px}
-  #login p{font-size:14.5px;line-height:1.6;margin-bottom:18px;color:var(--muted)}
-  #gbtn{background:#fff;color:#1f1f1f;border:none;border-radius:999px;padding:12px 20px;font-size:16px;
-       cursor:pointer;font-family:inherit;display:inline-flex;gap:10px;align-items:center;font-weight:600}
+  #login{position:fixed;inset:0;background:rgba(16,2,4,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+  #login .card{background:linear-gradient(170deg,#521419,#3d0d11);color:var(--text);border:1px solid #83413d;border-radius:24px;
+       padding:30px 24px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,220,180,.08)}
+  #login .lgo{width:78px;height:78px;border-radius:20px;box-shadow:0 8px 22px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.14)}
+  #login .lname{font-size:21px;font-weight:700;margin:13px 0 20px;letter-spacing:.2px}
+  #gbtn,#gbtn2{width:100%;display:flex;justify-content:center;align-items:center;gap:10px;border-radius:999px;
+       padding:12.5px 18px;font-size:15.5px;font-family:inherit;cursor:pointer;font-weight:600}
+  #gbtn{background:#fff;color:#1f1f1f;border:1px solid #fff}
+  #gbtn2{background:transparent;color:var(--text);border:1.5px solid var(--accent)}
+  .gicon{width:19px;height:19px;flex:none}
+  #login .lor{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;margin:13px 2px}
+  #login .lor span{flex:1;height:1px;background:var(--line)}
+  #lerr{color:#f28b82;font-size:13.5px;margin:10px 0 0}
+  #lerr:empty{margin:0}
+  #login .llegal{font-size:12px;color:var(--muted);margin:16px 0 0;line-height:1.55}
+  #login .llegal a,#acct a{color:var(--accent);text-decoration:underline}
 </style>
 </head>
 <body>
@@ -605,6 +613,7 @@ PAGE = r"""<!DOCTYPE html>
     <div class="sub">এই সপ্তাহে বাকি ফ্রি মেসেজ</div>
     <div id="acctrem"></div>
     <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
+    <p class="note" style="margin-top:10px"><a href="/privacy">প্রাইভেসি নীতি</a> · <a href="/terms">শর্তাবলি</a></p>
     <button id="logout" type="button">লগআউট</button>
   </div>
 </header>
@@ -654,10 +663,13 @@ PAGE = r"""<!DOCTYPE html>
 
 <div id="login">
   <div class="card">
-    <h2><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.6" fill="#1d7a3a"/><circle cx="12.8" cy="12" r="5.2" fill="#d42a24"/></svg> Chat Bash-এ স্বাগতম</h2>
-    <p>চ্যাট শুরু করতে Google দিয়ে লগইন করো। প্রতি সপ্তাহে প্রতি মডেলে নির্দিষ্ট সংখ্যক ফ্রি মেসেজ পাবে — লগইন থাকলে হিসাবটা ঠিক থাকে, আর ভুয়া/টেম্প মেইলের ঝামেলাও থাকে না।</p>
-    <button id="gbtn" type="button"><b style="color:#4285F4">G</b> Google দিয়ে লগইন</button>
-    <p id="lerr" style="color:#f28b82;margin-top:12px"></p>
+    <img class="lgo" src="/icon-192.png" alt="Chat Bash">
+    <div class="lname">Chat Bash</div>
+    <button id="gbtn" type="button"><svg class="gicon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.2-6.9-5.1L1.3 17.2C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.1 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.3 6.8C.5 8.4 0 10.1 0 12s.5 3.6 1.3 5.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.8l3.8 2.9c1-2.9 3.7-5 6.9-5z"/></svg> Google দিয়ে লগইন</button>
+    <div class="lor"><span></span>অথবা<span></span></div>
+    <button id="gbtn2" type="button"><svg class="gicon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.2-6.9-5.1L1.3 17.2C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.1 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.3 6.8C.5 8.4 0 10.1 0 12s.5 3.6 1.3 5.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.8l3.8 2.9c1-2.9 3.7-5 6.9-5z"/></svg> Google দিয়ে অ্যাকাউন্ট খুলো</button>
+    <p id="lerr"></p>
+    <p class="llegal">লগইন করলে তুমি আমাদের <a href="/terms">শর্তাবলি</a> ও <a href="/privacy">প্রাইভেসি নীতি</a> মেনে নিচ্ছো।</p>
   </div>
 </div>
 
@@ -936,10 +948,12 @@ if(AUTH_ON){
   wireAppLinks();
   firebase.auth().onAuthStateChanged(u=>{
     currentUser=u;
-    if(u){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); }
+    if(u){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); if(regWanted){ regWanted=false; toast('স্বাগতম! তোমার অ্যাকাউন্ট তৈরি হয়ে গেছে'); } }
     else{ loginEl.style.display='flex'; }
     renderAcct();
   });
+  let regWanted=false;
+  const gb2=$('gbtn2'); if(gb2) gb2.onclick=()=>{ regWanted=true; $('gbtn').click(); };
   $('gbtn').onclick=async()=>{
     const prov=new firebase.auth.GoogleAuthProvider();
     const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication;
@@ -1061,6 +1075,89 @@ def _icon(b64):
     import base64
     return base64.b64decode(b64), 200, {"Content-Type": "image/png",
                                         "Cache-Control": "public, max-age=604800"}
+
+
+
+# ---------------- legal pages ----------------
+
+def _legal_page(title, body_html):
+    return f"""<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title} — Chat Bash</title>
+<style>
+  body{{margin:0;background:linear-gradient(168deg,#5c1216,#260509);color:#f9efe4;
+       font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;line-height:1.75}}
+  .wrap{{max-width:720px;margin:0 auto;padding:28px 20px 56px}}
+  a{{color:#eebd55}}
+  h1{{font-size:24px;margin:14px 0 4px}}
+  h2{{font-size:17px;margin:24px 0 4px;color:#eebd55}}
+  p,li{{font-size:15px;color:#f3e2d4}}
+  .date{{color:#dda79d;font-size:13px}}
+  .back{{display:inline-block;margin-bottom:8px;text-decoration:none}}
+</style></head><body><div class="wrap">
+<a class="back" href="/">← Chat Bash-এ ফিরে যাও</a>
+<h1>{title}</h1>
+<p class="date">কার্যকর: ১৬ নভেম্বর ২০২৬</p>
+{body_html}
+</div></body></html>"""
+
+
+PRIVACY_BODY = """
+<h2>১. আমরা কী তথ্য সংগ্রহ করি</h2>
+<p>Chat Bash চালাতে যতটুকু দরকার, শুধু ততটুকুই: (ক) Google লগইন থেকে পাওয়া তোমার নাম ও ইমেইল ঠিকানা; (খ) তোমার পাঠানো প্রশ্ন ও AI-এর উত্তর — যা চ্যাট হিস্ট্রি হিসেবে তোমার অ্যাকাউন্টে সংরক্ষিত থাকে; (গ) প্রতি মডেলে প্রতি সপ্তাহে তুমি কতগুলো মেসেজ পাঠিয়েছ, সেই সংখ্যা (ফ্রি লিমিটের হিসাব রাখতে)। তোমার Google পাসওয়ার্ড আমরা কখনোই পাই না বা সংরক্ষণ করি না — লগইন সম্পূর্ণ Google-এর নিজস্ব সুরক্ষিত পদ্ধতিতে হয়।</p>
+<h2>২. তথ্য কেন ব্যবহার করি</h2>
+<p>শুধু সেবাটা দিতে: তোমাকে চেনা, তোমার হিস্ট্রি দেখানো, ফ্রি লিমিট প্রয়োগ করা এবং অপব্যবহার ঠেকানো।</p>
+<h2>৩. AI প্রসেসিং</h2>
+<p>উত্তর তৈরি করার জন্য তোমার প্রশ্ন ক্লাউড-ভিত্তিক AI প্রযুক্তির মাধ্যমে প্রসেস করা হয়। তাই প্রশ্নের মধ্যে নিজের বা অন্যের ব্যক্তিগত ও সংবেদনশীল তথ্য (যেমন পাসওয়ার্ড, আর্থিক তথ্য, ঠিকানা) না লেখাই ভালো।</p>
+<h2>৪. তথ্য শেয়ার করা</h2>
+<p>আমরা তোমার তথ্য বিক্রি করি না এবং বিজ্ঞাপনের উদ্দেশ্যে কাউকে দিই না। আইনি বাধ্যবাধকতা থাকলে ছাড়া তোমার তথ্য তৃতীয় পক্ষের কাছে প্রকাশ করা হয় না।</p>
+<h2>৫. সংরক্ষণ ও মুছে ফেলা</h2>
+<p>তোমার চ্যাট হিস্ট্রি তোমার অ্যাকাউন্টের সাথে সংরক্ষিত থাকে, যাতে যেকোনো ডিভাইস থেকে লগইন করে তুমি তা দেখতে পারো। তুমি চাইলে যেকোনো সময় <b>nasheedulislam@gmail.com</b> ঠিকানায় ইমেইল করে তোমার সংরক্ষিত হিস্ট্রি ও ব্যবহারের হিসাব মুছে ফেলতে বলতে পারো — আমরা তা মুছে দেব।</p>
+<h2>৬. কুকি ও লোকাল স্টোরেজ</h2>
+<p>লগইন অবস্থা ধরে রাখতে এবং চ্যাটের স্থানীয় ক্যাশ রাখতে তোমার ব্রাউজারের লোকাল স্টোরেজ ব্যবহার করা হয়। কোনো বিজ্ঞাপন-ট্র্যাকিং কুকি ব্যবহার করা হয় না।</p>
+<h2>৭. নিরাপত্তা</h2>
+<p>সব সংযোগ এনক্রিপ্টেড (HTTPS)। তবু মনে রাখবে, ইন্টারনেটে কোনো সেবাই শতভাগ ঝুঁকিমুক্ত নয়।</p>
+<h2>৮. শিশুদের ক্ষেত্রে</h2>
+<p>এই সেবা ১৩ বছরের কম বয়সী শিশুদের জন্য নয়।</p>
+<h2>৯. পরিবর্তন</h2>
+<p>এই নীতিতে পরিবর্তন এলে এই পেজেই হালনাগাদ করে জানানো হবে।</p>
+<h2>১০. যোগাযোগ</h2>
+<p>প্রাইভেসি নিয়ে কোনো প্রশ্ন থাকলে ইমেইল করো: <b>nasheedulislam@gmail.com</b></p>
+"""
+
+TERMS_BODY = """
+<h2>১. সেবার বর্ণনা</h2>
+<p>Chat Bash একটি সম্পূর্ণ ফ্রি AI চ্যাট সেবা, বর্তমানে পরীক্ষামূলক (ডেমো) পর্যায়ে আছে। সেবাটি ব্যবহার করলেই তুমি এই শর্তাবলি মেনে নিচ্ছো বলে ধরা হবে।</p>
+<h2>২. অ্যাকাউন্ট</h2>
+<p>সেবাটি ব্যবহার করতে Google অ্যাকাউন্ট দিয়ে লগইন করতে হয়। নিজের অ্যাকাউন্টের নিরাপত্তা রক্ষা করা তোমার নিজের দায়িত্ব।</p>
+<h2>৩. ফ্রি লিমিট</h2>
+<p>প্রতি মডেলে প্রতি সপ্তাহে নির্দিষ্ট সংখ্যক ফ্রি মেসেজ পাওয়া যায়। এই সীমা ও মডেলের তালিকা যেকোনো সময় পরিবর্তন হতে পারে।</p>
+<h2>৪. উত্তরের নির্ভুলতা</h2>
+<p>AI-এর উত্তর ভুল হতে পারে। গুরুত্বপূর্ণ বিষয়ে যাচাই না করে শুধু এই উত্তরের ওপর নির্ভর করে সিদ্ধান্ত নেবে না। এই সেবার উত্তর কোনোভাবেই চিকিৎসা, আইনি বা আর্থিক পরামর্শ নয় — এমন প্রয়োজনে সংশ্লিষ্ট পেশাদারের পরামর্শ নাও।</p>
+<h2>৫. নিষিদ্ধ ব্যবহার</h2>
+<p>এই সেবা দিয়ে অবৈধ কাজ, ক্ষতিকর বা বিদ্বেষমূলক কনটেন্ট তৈরি, স্প্যাম, অন্যের ক্ষতি, কিংবা সেবার নিরাপত্তা ভাঙা বা ফ্রি লিমিট ফাঁকি দেওয়ার চেষ্টা করা যাবে না। এমন ব্যবহার দেখলে অ্যাকাউন্টের প্রবেশ বন্ধ করে দেওয়া হতে পারে।</p>
+<h2>৬. দায়বদ্ধতার সীমা</h2>
+<p>সেবাটি "যেমন আছে" ভিত্তিতে বিনামূল্যে দেওয়া হচ্ছে। প্রযোজ্য আইন যতটুকু অনুমতি দেয়, সেবা ব্যবহার থেকে উদ্ভূত কোনো ক্ষতির জন্য Chat Bash বা এর নির্মাতা দায়ী থাকবে না।</p>
+<h2>৭. সেবা পরিবর্তন বা বন্ধ</h2>
+<p>যেকোনো সময় সেবার কোনো অংশ পরিবর্তন, স্থগিত বা সম্পূর্ণ বন্ধ করে দেওয়া হতে পারে, পূর্বঘোষণা ছাড়াই।</p>
+<h2>৮. মেধাসম্পত্তি</h2>
+<p>Chat Bash নাম, লোগো ও ডিজাইন এর নির্মাতার সম্পত্তি। তুমি যা লিখছো (তোমার প্রশ্ন), তার অধিকার তোমারই।</p>
+<h2>৯. প্রযোজ্য আইন</h2>
+<p>এই শর্তাবলি বাংলাদেশের আইন অনুযায়ী ব্যাখ্যা ও প্রয়োগ হবে।</p>
+<h2>১০. যোগাযোগ</h2>
+<p>যেকোনো প্রশ্নে ইমেইল করো: <b>nasheedulislam@gmail.com</b></p>
+"""
+
+
+@app.get("/privacy")
+def privacy():
+    return _legal_page("প্রাইভেসি নীতি", PRIVACY_BODY)
+
+
+@app.get("/terms")
+def terms():
+    return _legal_page("শর্তাবলি", TERMS_BODY)
 
 
 @app.get("/icon-192.png")
