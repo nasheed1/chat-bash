@@ -89,13 +89,13 @@ jobs:
         working-directory: android-app
         run: npx cap sync android
 
-      - name: Build APK (debug)
+      - name: Build APK (release — a debuggable build is a Play Protect risk signal)
         working-directory: android-app
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/ChatBash.apk"
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/ChatBash.apk"
 
       - uses: actions/upload-artifact@v4
         with:
