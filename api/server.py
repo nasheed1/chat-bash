@@ -487,6 +487,22 @@ PAGE = r"""<!DOCTYPE html>
   img{-webkit-user-drag:none}
   #chat,#chat .msg{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
   input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+  /* ---------- motion ---------- */
+  @keyframes popIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes blink{50%{opacity:0}}
+  #modelMenu{animation:popIn .16s ease}
+  #acct.open{animation:popIn .16s ease}
+  #plusmenu.open{animation:popIn .16s ease}
+  #limitcard{animation:riseIn .25s ease}
+  #login .card{animation:riseIn .3s ease}
+  .msg{animation:fadeIn .25s ease}
+  .icobtn{transition:transform .12s ease}
+  .icobtn:active{transform:scale(.88)}
+  .caret{display:inline-block;width:8px;height:1.02em;background:var(--accent);margin-left:2px;
+         vertical-align:text-bottom;border-radius:1.5px;animation:blink .9s steps(1) infinite}
+  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important} }
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
   .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
   #modelBtn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text);
@@ -635,28 +651,28 @@ PAGE = r"""<!DOCTYPE html>
 <div id="bamboo" aria-hidden="true"><svg viewBox="0 0 420 920" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg"><rect x="331.5" y="-20" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="86" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="98" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="204" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="216" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="322" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="334" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="440" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="452" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="558" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="570" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="676" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="688" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="794" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="806" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="912" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="924" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="1030" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="274.0" y="150" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="256" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="268" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="374" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="386" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="492" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="504" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="610" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="622" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="728" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="740" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="846" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="858" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="964" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="387.5" y="70" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="176" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="188" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="294" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="306" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="412" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="424" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="530" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="542" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="648" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="660" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="766" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="778" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="884" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="896" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="1002" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><g transform="translate(338,108) rotate(-26)" opacity="0.2"><path d="M0,0 Q 55,-13 122,0 Q 55,7 0,0" fill="#8ba876"/></g><g transform="translate(350,226) rotate(16)" opacity="0.16"><path d="M0,0 Q 46,-13 102,0 Q 46,7 0,0" fill="#8ba876"/></g><g transform="translate(338,348) rotate(-16)" opacity="0.18"><path d="M0,0 Q 50,-13 112,0 Q 50,7 0,0" fill="#8ba876"/></g><g transform="translate(276,300) rotate(-30)" opacity="0.16"><path d="M0,0 Q 41,-13 92,0 Q 41,7 0,0" fill="#8ba876"/></g><g transform="translate(286,428) rotate(15)" opacity="0.14"><path d="M0,0 Q 39,-13 86,0 Q 39,7 0,0" fill="#8ba876"/></g><g transform="translate(390,190) rotate(-22)" opacity="0.15"><path d="M0,0 Q 38,-13 84,0 Q 38,7 0,0" fill="#8ba876"/></g><g transform="translate(342,470) rotate(48)" opacity="0.13"><path d="M0,0 Q 43,-13 96,0 Q 43,7 0,0" fill="#8ba876"/></g><g transform="translate(280,560) rotate(-40)" opacity="0.13"><path d="M0,0 Q 40,-13 88,0 Q 40,7 0,0" fill="#8ba876"/></g></svg></div>
 <header>
   <button class="icobtn" id="burger" type="button" aria-label="মেনু">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
   </button>
   <div class="modelwrap">
-    <button id="modelBtn" type="button" aria-label="মডেল বাছাই"><span id="modelName">Bash Lite</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button id="modelBtn" type="button" aria-label="মডেল বাছাই"><span id="modelName">Bash Lite</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
     <div id="modelMenu" hidden></div>
   </div>
   <button class="icobtn" id="newtop" type="button" aria-label="নতুন চ্যাট">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5h16"/><path d="M16.9 4.1a1.85 1.85 0 012.6 0l.5.5a1.85 1.85 0 010 2.6L8.2 19l-3.7 1 1-3.7L16.9 4.1z"/><path d="M14.6 6.4l2.6 2.6"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5h16"/><path d="M16.9 4.1a1.85 1.85 0 012.6 0l.5.5a1.85 1.85 0 010 2.6L8.2 19l-3.7 1 1-3.7L16.9 4.1z"/><path d="M14.6 6.4l2.6 2.6"/></svg>
   </button>
   <button class="icobtn" id="dots" type="button" aria-label="আরও">
-    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>
+    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.15"/><circle cx="12" cy="12" r="2.15"/><circle cx="12" cy="19" r="2.15"/></svg>
   </button>
   <div id="acct">
     <div class="who" id="acctname">লগইন করা নেই</div>
     <div class="sub">এই সপ্তাহে বাকি ফ্রি মেসেজ</div>
     <div id="acctrem"></div>
-    <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
+    <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
     <p class="note" style="margin-top:10px"><a href="/privacy">প্রাইভেসি নীতি</a> · <a href="/terms">শর্তাবলি</a></p>
     <button id="logout" type="button">লগআউট</button>
   </div>
 </header>
-<div id="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।</div>
+<div id="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।</div>
 <div id="chat">
   <div class="msg a">আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।</div>
 </div>
@@ -673,32 +689,32 @@ PAGE = r"""<!DOCTYPE html>
 </div>
 <form id="f">
   <button class="icobtn" id="plus" type="button" aria-label="আরও অপশন">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
   </button>
   <input id="q" placeholder="Chat Bash-কে প্রশ্ন করো…" autocomplete="off">
   <button class="icobtn" id="mic" type="button" aria-label="ভয়েসে লেখো">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0013 0M12 18v3M8.5 21h7"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0013 0M12 18v3M8.5 21h7"/></svg>
   </button>
   <button id="send" type="submit" aria-label="পাঠাও">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.5v-13M6 11l6-6 6 6"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.5v-13M6 11l6-6 6 6"/></svg>
   </button>
 </form>
 <p class="fineprint">Chat Bash ভুল করতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও। সম্পূর্ণ ফ্রি প্রযুক্তিতে তৈরি, কোনো কোটি টাকার প্রকল্প নয়।</p>
 
 <div id="plusmenu">
-  <button type="button" id="pm-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট</button>
-  <button type="button" id="pm-hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.9 2"/></svg> আগের চ্যাটগুলো</button>
-  <button type="button" id="pm-model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 8h12.7M13.2 4.4 16.8 8l-3.6 3.6M20.2 16H7.5M10.8 12.4 7.2 16l3.6 3.6"/></svg> অন্য মডেল ব্যবহার করো</button>
+  <button type="button" id="pm-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট</button>
+  <button type="button" id="pm-hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.9 2"/></svg> আগের চ্যাটগুলো</button>
+  <button type="button" id="pm-model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 8h12.7M13.2 4.4 16.8 8l-3.6 3.6M20.2 16H7.5M10.8 12.4 7.2 16l3.6 3.6"/></svg> অন্য মডেল ব্যবহার করো</button>
 </div>
 
 <div id="scrim"></div>
 <aside id="drawer">
   <div class="dhead"><b><img class="dlogo" src="/icon-192.png" alt=""> Chat Bash</b>
     <button class="icobtn" id="dclose" type="button" aria-label="বন্ধ করো">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-  <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট শুরু করো</button>
+  <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট শুরু করো</button>
   <div class="dsec">সাম্প্রতিক চ্যাট</div>
   <div id="histlist"></div>
   <div class="dfoot" id="dfoot" hidden>
@@ -735,12 +751,12 @@ const GREETING='আসসালামু আলাইকুম! আমি Chat B
 let currentUser=null, remaining={}, pairs=[], currentId=null;
 
 const IC={
- up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21.5v-10l3.9-7c1.6-.3 3 1 2.8 2.6l-.6 4.4h5.9a2 2 0 012 2.4l-1.1 5.7a2 2 0 01-2 1.8H7.5"/><rect x="3" y="11.5" width="4.5" height="10" rx="1.2"/></svg>',
- down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 2.5v10l3.9 7c1.6.3 3-1 2.8-2.6l-.6-4.4h5.9a2 2 0 002-2.4L20.4 4.4a2 2 0 00-2-1.8H7.5"/><rect x="3" y="2.5" width="4.5" height="10" rx="1.2"/></svg>',
- regen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 11-2.5-6.1M20.5 3.4V8H16"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
- share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5v-10M7.8 8.2L12 4l4.2 4.2"/><path d="M5 12.5V19a1.8 1.8 0 001.8 1.8h10.4A1.8 1.8 0 0019 19v-6.5"/></svg>',
- copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5.5 15h-.7A1.8 1.8 0 013 13.2V4.8A1.8 1.8 0 014.8 3h8.4A1.8 1.8 0 0115 4.8v.7"/></svg>',
- speak:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.8v4.4h3.2L12 18.6V5.4L7.2 9.8H4z"/><path d="M15.2 9.6a3.8 3.8 0 010 4.8"/><path d="M17.9 7a7.8 7.8 0 010 10"/></svg>'};
+ up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21.5v-10l3.9-7c1.6-.3 3 1 2.8 2.6l-.6 4.4h5.9a2 2 0 012 2.4l-1.1 5.7a2 2 0 01-2 1.8H7.5"/><rect x="3" y="11.5" width="4.5" height="10" rx="1.2"/></svg>',
+ down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 2.5v10l3.9 7c1.6.3 3-1 2.8-2.6l-.6-4.4h5.9a2 2 0 002-2.4L20.4 4.4a2 2 0 00-2-1.8H7.5"/><rect x="3" y="2.5" width="4.5" height="10" rx="1.2"/></svg>',
+ regen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 11-2.5-6.1M20.5 3.4V8H16"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
+ share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5v-10M7.8 8.2L12 4l4.2 4.2"/><path d="M5 12.5V19a1.8 1.8 0 001.8 1.8h10.4A1.8 1.8 0 0019 19v-6.5"/></svg>',
+ copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5.5 15h-.7A1.8 1.8 0 013 13.2V4.8A1.8 1.8 0 014.8 3h8.4A1.8 1.8 0 0115 4.8v.7"/></svg>',
+ speak:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.8v4.4h3.2L12 18.6V5.4L7.2 9.8H4z"/><path d="M15.2 9.6a3.8 3.8 0 010 4.8"/><path d="M17.9 7a7.8 7.8 0 010 10"/></svg>'};
 
 const MDESC={lite:'হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে',pro:'সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে',swift:'ঝটপট উত্তর — ছোট প্রশ্নে'};
 let curModel='__DEFAULT_MODEL__';
@@ -803,7 +819,7 @@ function renderHist(){
   all.forEach(c=>{
     const d=document.createElement('div'); d.className='hitem'+(c.id===currentId?' cur':'');
     const ic=document.createElement('span'); ic.className='hic';
-    ic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8.4 8.4 0 01-8.4 8.3c-1.3 0-2.6-.3-3.7-.8L3.5 20l1-4.8a8.3 8.3 0 01-1-3.9 8.4 8.4 0 018.6-8.3 8.4 8.4 0 018.4 8.6z"/></svg>';
+    ic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8.4 8.4 0 01-8.4 8.3c-1.3 0-2.6-.3-3.7-.8L3.5 20l1-4.8a8.3 8.3 0 01-1-3.9 8.4 8.4 0 018.6-8.3 8.4 8.4 0 018.4 8.6z"/></svg>';
     const meta=document.createElement('div'); meta.className='hmeta';
     const t=document.createElement('div'); t.className='t'; t.textContent=(c.pairs&&c.pairs[0]?c.pairs[0].u:'নতুন চ্যাট');
     const s=document.createElement('div'); s.className='d'; s.textContent=new Date(c.ts).toLocaleDateString('bn-BD',{day:'numeric',month:'long'})+' · '+(c.pairs?c.pairs.length:0)+'টি প্রশ্ন';
@@ -845,6 +861,21 @@ function md(s){
   closeLists(); return html;
 }
 function setRich(el,text){ const x=el.querySelector('.txt'); if(x) x.innerHTML=md(text); }
+function typeReply(el, full, done){
+  const x=el.querySelector('.txt');
+  if(!x||!full){ setRich(el, full||''); if(done) done(); return; }
+  const tmp=document.createElement('div'); tmp.innerHTML=md(full);
+  const plain=tmp.textContent||full;
+  const caret=document.createElement('span'); caret.className='caret';
+  let i=0; const step=Math.max(3, Math.ceil(plain.length/110));
+  x.textContent='';
+  const iv=setInterval(()=>{
+    i+=step;
+    x.textContent=plain.slice(0,i); x.appendChild(caret);
+    chat.scrollTop=chat.scrollHeight;
+    if(i>=plain.length){ clearInterval(iv); setRich(el, full); chat.scrollTop=chat.scrollHeight; if(done) done(); }
+  }, 16);
+}
 function add(text,cls){const d=document.createElement('div');d.className='msg '+cls;
   if(cls==='a'){ const x=document.createElement('div'); x.className='txt'; x.innerHTML=md(text); d.appendChild(x); }
   else d.textContent=text;
@@ -902,8 +933,9 @@ async function regen(i,el,btn){
   try{
     const {status,data}=await ask(pairs[i].u,pairs.slice(0,i));
     el.classList.remove('dots');
-    if(status===200&&data.reply){ pairs[i].a=data.reply; setRich(el,data.reply);
-      if(data.remaining){remaining=data.remaining; renderAcct();} persist(); }
+    if(status===200&&data.reply){ pairs[i].a=data.reply;
+      if(data.remaining){remaining=data.remaining; renderAcct();}
+      typeReply(el,data.reply,()=>persist()); }
     else{ setRich(el,old); toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
   }catch(e){ el.classList.remove('dots'); setRich(el,old); toast('নেটওয়ার্কে সমস্যা'); }
   btn.disabled=false;
@@ -1082,8 +1114,7 @@ form.onsubmit=async e=>{
     if(status===401){ setRich(wait,'লগইনের মেয়াদ শেষ — আবার লগইন করো।');
       if(AUTH_ON) loginEl.style.display='flex'; }
     else if(status===429){ setRich(wait,data.reply); if(data.remaining){remaining=data.remaining; renderAcct();} }
-    else if(data.reply){ setRich(wait,data.reply);
-      pairs.push({u:text,a:data.reply,f:''}); attachActions(wait,idx); persist();
+    else if(data.reply){ typeReply(wait,data.reply,()=>{ pairs.push({u:text,a:data.reply,f:''}); attachActions(wait,idx); persist(); });
       if(data.remaining){remaining=data.remaining; renderAcct();} }
     else setRich(wait,'কিছু একটা সমস্যা হয়েছে।');
   }catch(err){ wait.classList.remove('dots'); setRich(wait,'নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।'); }
