@@ -481,10 +481,19 @@ PAGE = r"""<!DOCTYPE html>
   .icobtn svg{width:22px;height:22px}
   /* ---------- top bar ---------- */
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
-  .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto}
-  #model{appearance:none;-webkit-appearance:none;background:none;border:none;color:var(--text);
+  .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
+  #modelBtn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text);
          font-family:inherit;font-size:17px;font-weight:600;padding:8px 2px;cursor:pointer;max-width:46vw}
-  #model option{background:var(--panel);color:var(--text);font-size:15px}
+  #modelMenu{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--menu);
+         border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.55);padding:6px;z-index:46}
+  .mopt{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);
+         font-family:inherit;text-align:left;padding:10px;border-radius:11px;cursor:pointer}
+  .mopt:hover{background:var(--bubble)}
+  .mopt .mn{display:block;font-size:15.5px;font-weight:600}
+  .mopt .md{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+  .mopt .radio{margin-left:auto;width:17px;height:17px;border:1.8px solid var(--muted);border-radius:50%;flex:none;position:relative}
+  .mopt.on .radio{border-color:var(--accent)}
+  .mopt.on .radio::after{content:'';position:absolute;inset:3.5px;background:var(--accent);border-radius:50%}
   .chev{color:var(--muted);pointer-events:none}
   /* ---------- account dropdown ---------- */
   #acct{position:absolute;top:54px;right:10px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
@@ -493,12 +502,14 @@ PAGE = r"""<!DOCTYPE html>
   #acct .who{font-size:14.5px;font-weight:600;margin-bottom:2px;word-break:break-all}
   #acct .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
   #acct .remline{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-top:1px solid var(--line)}
-  #acct .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+  #acct .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5;display:flex;gap:6px;align-items:flex-start}
+  #acct .note svg{flex:none;margin-top:2px}
   #logout{margin-top:12px;width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
           border-radius:999px;padding:9px;font-family:inherit;font-size:14px;cursor:pointer}
   /* ---------- demo strip ---------- */
   #demo{background:rgba(61,13,17,.82);color:#f5c04e;border-top:1px solid #6e2a2e;border-bottom:1px solid #6e2a2e;
-        text-align:center;font-size:12.5px;line-height:1.45;padding:6px 14px}
+        display:flex;align-items:center;justify-content:center;gap:7px;text-align:center;font-size:12.5px;line-height:1.45;padding:6px 14px}
+  #demo svg{flex:none}
   /* ---------- chat ---------- */
   #chat{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:22px;
         width:100%;max-width:900px;margin:0 auto}
@@ -599,8 +610,8 @@ PAGE = r"""<!DOCTYPE html>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
   </button>
   <div class="modelwrap">
-    <select id="model" aria-label="মডেল"></select>
-    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    <button id="modelBtn" type="button" aria-label="মডেল বাছাই"><span id="modelName">Bash Lite</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div id="modelMenu" hidden></div>
   </div>
   <button class="icobtn" id="newtop" type="button" aria-label="নতুন চ্যাট">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5h16"/><path d="M16.9 4.1a1.85 1.85 0 012.6 0l.5.5a1.85 1.85 0 010 2.6L8.2 19l-3.7 1 1-3.7L16.9 4.1z"/><path d="M14.6 6.4l2.6 2.6"/></svg>
@@ -681,7 +692,7 @@ const MODELS = __MODELS_JSON__;
 const AUTH_ON = Object.keys(FB_CONFIG).length > 0;
 const $=id=>document.getElementById(id);
 const chat=$('chat'),form=$('f'),q=$('q'),send=$('send'),mic=$('mic'),
-      modelSel=$('model'),loginEl=$('login'),chipsEl=$('chips'),
+      loginEl=$('login'),chipsEl=$('chips'),
       drawer=$('drawer'),scrim=$('scrim'),acct=$('acct'),plusmenu=$('plusmenu');
 const GREETING='আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।';
 let currentUser=null, remaining={}, pairs=[], currentId=null;
@@ -694,8 +705,21 @@ const IC={
  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5.5 15h-.7A1.8 1.8 0 013 13.2V4.8A1.8 1.8 0 014.8 3h8.4A1.8 1.8 0 0115 4.8v.7"/></svg>',
  speak:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.8v4.4h3.2L12 18.6V5.4L7.2 9.8H4z"/><path d="M15.2 9.6a3.8 3.8 0 010 4.8"/><path d="M17.9 7a7.8 7.8 0 010 10"/></svg>'};
 
-MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.key;o.textContent=m.name;modelSel.appendChild(o);});
-modelSel.value='__DEFAULT_MODEL__';
+const MDESC={lite:'হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে',pro:'সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে',swift:'ঝটপট উত্তর — ছোট প্রশ্নে'};
+let curModel='__DEFAULT_MODEL__';
+const modelMenu=$('modelMenu');
+MODELS.forEach(m=>{
+  const b=document.createElement('button'); b.type='button'; b.className='mopt'; b.dataset.key=m.key;
+  b.innerHTML='<span class="mt"><span class="mn"></span><span class="md"></span></span><span class="radio"></span>';
+  b.querySelector('.mn').textContent=m.name; b.querySelector('.md').textContent=MDESC[m.key]||'';
+  b.onclick=()=>{ setModel(m.key); modelMenu.hidden=true; };
+  modelMenu.appendChild(b);
+});
+function setModel(k){ curModel=k; const m=MODELS.find(x=>x.key===k); if(m) $('modelName').textContent=m.name;
+  modelMenu.querySelectorAll('.mopt').forEach(o=>o.classList.toggle('on',o.dataset.key===k)); }
+setModel(curModel);
+$('modelBtn').onclick=e=>{ e.stopPropagation(); modelMenu.hidden=!modelMenu.hidden; };
+document.addEventListener('click',e=>{ if(!modelMenu.hidden&&!e.target.closest('.modelwrap')) modelMenu.hidden=true; });
 
 let toastTimer=null;
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');
@@ -824,7 +848,7 @@ function speak(t,btn){
 async function ask(text,histPairs){
   let token=''; if(currentUser) token=await currentUser.getIdToken();
   const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message:text,history:histPairs.map(p=>[p.u,p.a]),model:modelSel.value,idToken:token})});
+    body:JSON.stringify({message:text,history:histPairs.map(p=>[p.u,p.a]),model:curModel,idToken:token})});
   return {status:r.status,data:await r.json()};
 }
 async function regen(i,el,btn){
@@ -871,8 +895,8 @@ $('newtop').onclick=()=>{ newChat(); };
 $('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); };
 $('pm-new').onclick=()=>{ closeMenus(); newChat(); };
 $('pm-hist').onclick=()=>{ closeMenus(); openDrawer(); };
-$('pm-model').onclick=()=>{ closeMenus(); const i=MODELS.findIndex(m=>m.key===modelSel.value);
-  modelSel.value=MODELS[(i+1)%MODELS.length].key; toast('মডেল: '+MODELS[(i+1)%MODELS.length].name); focusQ(); };
+$('pm-model').onclick=()=>{ closeMenus(); const i=MODELS.findIndex(m=>m.key===curModel);
+  setModel(MODELS[(i+1)%MODELS.length].key); toast('মডেল: '+MODELS[(i+1)%MODELS.length].name); focusQ(); };
 
 /* ---------------- chips ---------------- */
 document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ q.value=c.textContent; form.requestSubmit(); });
