@@ -25,6 +25,7 @@ If FIREBASE_PROJECT_ID is unset the app runs in DEV mode (no login needed)
 import datetime
 import json
 import os
+import secrets
 import time
 
 import requests
@@ -209,6 +210,53 @@ def credits_consume(uid, model_key):
             _redis("EXPIRE", key, str(8 * 24 * 3600))
     except Exception as e:  # noqa: BLE001
         print("credits write failed:", e, flush=True)
+
+
+HISTORY_ON = CREDITS_ON  # same Redis store as the credit counters
+
+
+def history_load(uid):
+    if not HISTORY_ON:
+        return []
+    try:
+        raw = _redis("GET", f"cbhist:{uid}")
+        if not raw:
+            return []
+        data = json.loads(raw)
+        return data if isinstance(data, list) else []
+    except Exception as e:  # noqa: BLE001
+        print("history load failed:", e, flush=True)
+        return []
+
+
+def history_save(uid, chats):
+    if not HISTORY_ON:
+        return False
+    try:
+        clean = []
+        for c in (chats or [])[:30]:
+            if not isinstance(c, dict):
+                continue
+            pairs = []
+            for p in (c.get("pairs") or [])[:60]:
+                if not isinstance(p, dict):
+                    continue
+                pairs.append({
+                    "u": str(p.get("u", ""))[:4000],
+                    "a": str(p.get("a", ""))[:8000],
+                    "f": p.get("f") if p.get("f") in ("up", "down") else "",
+                })
+            clean.append({"id": str(c.get("id", ""))[:40],
+                          "ts": int(c.get("ts") or 0), "pairs": pairs})
+        payload = json.dumps(clean, ensure_ascii=False)
+        while clean and len(payload) > 400_000:
+            clean.pop()
+            payload = json.dumps(clean, ensure_ascii=False)
+        _redis("SET", f"cbhist:{uid}", payload)
+        return True
+    except Exception as e:  # noqa: BLE001
+        print("history save failed:", e, flush=True)
+        return False
 
 
 def remaining_map(uid):
@@ -637,12 +685,36 @@ function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');
 /* ---------------- history storage ---------------- */
 function loadChats(){try{return JSON.parse(localStorage.getItem('cb_chats')||'[]');}catch(e){return[];}}
 function storeChats(c){try{localStorage.setItem('cb_chats',JSON.stringify(c.slice(0,30)));}catch(e){}}
+let syncTimer=null;
+async function syncHistoryUp(){
+  if(!currentUser) return;
+  try{
+    const t=await currentUser.getIdToken();
+    await fetch('/history/save',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idToken:t,chats:loadChats()})});
+  }catch(e){}
+}
+function queueSync(){ clearTimeout(syncTimer); syncTimer=setTimeout(syncHistoryUp,900); }
+async function syncHistoryDown(){
+  if(!currentUser) return;
+  try{
+    const t=await currentUser.getIdToken();
+    const r=await fetch('/history/get',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idToken:t})});
+    const d=await r.json(); if(!d||!Array.isArray(d.chats)) return;
+    const byId={};
+    d.chats.forEach(c=>{ if(c&&c.id) byId[c.id]=c; });
+    loadChats().forEach(c=>{ if(c&&c.id&&(!byId[c.id]||(byId[c.id].ts||0)<(c.ts||0))) byId[c.id]=c; });
+    const merged=Object.values(byId).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
+    storeChats(merged); renderHist(); queueSync();
+  }catch(e){}
+}
 function persist(){
   if(!pairs.length) return;
   const all=loadChats();
   if(!currentId){ currentId='c'+Date.now(); all.unshift({id:currentId,ts:Date.now(),pairs:pairs}); }
   else{ const c=all.find(x=>x.id===currentId); if(c){c.pairs=pairs;c.ts=Date.now();} else all.unshift({id:currentId,ts:Date.now(),pairs:pairs}); }
-  storeChats(all); renderHist();
+  storeChats(all); renderHist(); queueSync();
 }
 function renderHist(){
   const all=loadChats(), list=$('histlist'); list.innerHTML='';
@@ -802,6 +874,40 @@ mic.onclick=()=>{
   }catch(e){ toast('ভয়েস ইনপুট চালু হয়নি'); }
 };
 
+/* --------- browser sign-in hands the session to the app (deep link) --------- */
+async function maybeHandoff(){
+  if(window.Capacitor) return;
+  if(!new URLSearchParams(location.search).has('applogin')) return;
+  if(sessionStorage.getItem('cb_ho')) return;
+  try{
+    const t=await currentUser.getIdToken();
+    const r=await fetch('/auth/code',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({idToken:t})});
+    const d=await r.json(); if(!d||!d.code) return;
+    sessionStorage.setItem('cb_ho','1');
+    const link='chatbash://login?code='+d.code;
+    const div=document.createElement('div');
+    div.style.cssText='position:fixed;inset:0;background:rgba(20,2,4,.88);display:flex;align-items:center;justify-content:center;z-index:70;padding:20px';
+    div.innerHTML='<a href="'+link+'" style="background:#fff;color:#1f1f1f;padding:14px 22px;border-radius:999px;font-size:17px;text-decoration:none;font-family:inherit">Chat Bash অ্যাপে ফিরে যাও</a>';
+    document.body.appendChild(div);
+    location.href=link;
+  }catch(e){}
+}
+function wireAppLinks(){
+  if(!window.Capacitor||!Capacitor.Plugins||!Capacitor.Plugins.App) return;
+  const handleUrl=async e=>{
+    const url=(e&&e.url)||''; const m=url.match(/code=([A-Za-z0-9]+)/); if(!m) return;
+    try{
+      const r=await fetch('/auth/exchange',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({code:m[1]})});
+      const d=await r.json();
+      if(d&&d.idToken){ await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken)); }
+    }catch(err){ console.warn('handoff failed',err); }
+  };
+  Capacitor.Plugins.App.addListener('appUrlOpen',handleUrl);
+  Capacitor.Plugins.App.getLaunchUrl().then(u=>{ if(u&&u.url) handleUrl(u); }).catch(()=>{});
+}
+
 /* ---------------- auth ---------------- */
 async function refreshMe(){
   if(!currentUser) return;
@@ -814,9 +920,10 @@ async function refreshMe(){
 }
 if(AUTH_ON){
   firebase.initializeApp(FB_CONFIG);
+  wireAppLinks();
   firebase.auth().onAuthStateChanged(u=>{
     currentUser=u;
-    if(u){ loginEl.style.display='none'; refreshMe(); }
+    if(u){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); }
     else{ loginEl.style.display='flex'; }
     renderAcct();
   });
@@ -829,6 +936,9 @@ if(AUTH_ON){
         const tok=r&&r.credential&&r.credential.idToken;
         if(tok){ await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(tok)); return; }
       }catch(e){ console.warn('native login failed, falling back', e); }
+    }
+    if(window.Capacitor){
+      try{ const w=window.open('https://chat-bash.vercel.app/?applogin=1','_system'); if(w){ return; } }catch(e){}
     }
     try{
       if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
@@ -969,6 +1079,72 @@ def me():
     if user is None:
         return jsonify({"error": "unauthorized"}), 401
     return jsonify({"email": user["email"], "remaining": remaining_map(user["uid"])})
+
+
+def login_code_create(user, id_token):
+    """One-time code so a browser sign-in can hand the session to the app.
+    The payload carries the browser session's Firebase ID token (max 1h life);
+    the code itself lives 5 minutes and is single-use."""
+    if not HISTORY_ON:
+        return None
+    try:
+        code = "".join(secrets.choice("ABCDEFGHJKMNPQRSTUVWXYZ23456789") for _ in range(8))
+        payload = json.dumps({"uid": user["uid"], "email": user["email"],
+                              "name": user["name"], "tok": id_token})
+        _redis("SET", f"cblogin:{code}", payload)
+        _redis("EXPIRE", f"cblogin:{code}", "300")
+        return code
+    except Exception as e:  # noqa: BLE001
+        print("login code create failed:", e, flush=True)
+        return None
+
+
+@app.post("/auth/code")
+def auth_code():
+    user = authed_user(request)
+    if user is None:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    code = login_code_create(user, data.get("idToken", ""))
+    if not code:
+        return jsonify({"error": "unavailable"}), 503
+    return jsonify({"code": code})
+
+
+@app.post("/auth/exchange")
+def auth_exchange():
+    data = request.get_json(force=True, silent=True) or {}
+    code = (data.get("code") or "").strip().upper()
+    if not code or not HISTORY_ON:
+        return jsonify({"error": "bad code"}), 400
+    try:
+        raw = _redis("GET", f"cblogin:{code}")
+        if not raw:
+            return jsonify({"error": "expired"}), 404
+        _redis("DEL", f"cblogin:{code}")
+        info = json.loads(raw)
+        return jsonify({"uid": info["uid"], "email": info["email"],
+                        "name": info["name"], "idToken": info.get("tok", "")})
+    except Exception as e:  # noqa: BLE001
+        print("login exchange failed:", e, flush=True)
+        return jsonify({"error": "failed"}), 500
+
+
+@app.post("/history/get")
+def history_get():
+    user = authed_user(request)
+    if user is None:
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"chats": history_load(user["uid"]), "on": HISTORY_ON})
+
+
+@app.post("/history/save")
+def history_save_route():
+    user = authed_user(request)
+    if user is None:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    return jsonify({"ok": history_save(user["uid"], data.get("chats") or [])})
 
 
 @app.post("/chat")
