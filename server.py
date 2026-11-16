@@ -592,7 +592,7 @@ PAGE = r"""<!DOCTYPE html>
   [data-theme="green"] .sm-card{background:linear-gradient(170deg,#0d4530,#07271b);border-color:#1f7a52}
   [data-theme="green"] #send{background:#d42a24;color:#fff}
   /* ---------- theme menu ---------- */
-  #thememenu,#langmenu{position:fixed;left:52px;bottom:86px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
+  #thememenu,#langmenu{position:fixed;left:14px;bottom:78px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
             padding:6px;display:none;z-index:40;box-shadow:0 12px 34px rgba(0,0,0,.45);min-width:204px}
   #thememenu.open,#langmenu.open{display:block;animation:popIn .16s ease}
   #thememenu button,#langmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
@@ -601,7 +601,6 @@ PAGE = r"""<!DOCTYPE html>
   #thememenu .sw{width:18px;height:18px;border-radius:50%;flex:none;border:1px solid var(--line)}
   #thememenu .tk,#langmenu .tk{margin-left:auto;width:8px;height:8px;border-radius:50%;flex:none}
   #thememenu button.on .tk,#langmenu button.on .tk{background:var(--accent)}
-  #langmenu{left:104px}
   #langmenu .swtxt{width:26px;font-size:11.5px;font-weight:700;color:var(--accent);flex:none;letter-spacing:.02em}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;background:linear-gradient(168deg,#5c1216 0%,#38070d 55%,#260509 100%);color:var(--text);
@@ -701,14 +700,17 @@ PAGE = r"""<!DOCTYPE html>
   .mopt .soon{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent);
        border:1px solid var(--accent);border-radius:999px;padding:3px 8px;opacity:.92}
   /* ---------- soon modal ---------- */
-  #soonmodal,#fullmodal,#breakmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
+  #soonmodal,#fullmodal,#breakmodal,#infomodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
        display:flex;align-items:center;justify-content:center;z-index:70;padding:18px}
-  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden]{display:none}
+  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden],#infomodal[hidden]{display:none}
   .sm-card{background:linear-gradient(170deg,#521419,#3d0d11);border:1px solid #83413d;border-radius:22px;
        padding:22px 20px;width:min(340px,88vw);box-shadow:0 24px 60px rgba(0,0,0,.6);animation:riseIn .25s ease;text-align:center}
+  .sm-ic{width:52px;height:52px;margin:0 auto 10px;border-radius:50%;background:rgba(238,189,85,.14);
+       border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--accent)}
+  .sm-ic svg{width:26px;height:26px}
   .sm-t{font-size:17px;font-weight:700}
   .sm-b{font-size:14px;line-height:1.65;margin:10px 0 16px}
-  #soonOk,#fullRetry,#breakOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+  #soonOk,#fullRetry,#breakOk,#infoOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
        border-radius:999px;padding:10px 11px 12px;font-family:inherit;font-size:15px;cursor:pointer;line-height:1.3;display:flex;align-items:center;justify-content:center}
   /* ---------- limit card ---------- */
   #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
@@ -770,7 +772,7 @@ PAGE = r"""<!DOCTYPE html>
   #drawer .dfoot[hidden]{display:none}
   #drawer .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#43100f;font-weight:700;
            font-size:15.5px;display:flex;align-items:center;justify-content:center;flex:none}
-  #drawer .pmeta{min-width:0}
+  #drawer .pmeta{min-width:0;flex:1}
   #drawer .pname{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #drawer .pmail{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* ---------- toast ---------- */
@@ -813,6 +815,9 @@ PAGE = r"""<!DOCTYPE html>
   <button class="icobtn" id="dots" type="button" aria-label="More" data-i18n-aria="ariaMore">
     <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.15"/><circle cx="12" cy="12" r="2.15"/><circle cx="12" cy="19" r="2.15"/></svg>
   </button>
+  <button class="icobtn" id="infobtn" type="button" aria-label="About this app" data-i18n-aria="ariaInfo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><circle cx="12" cy="7.7" r="1.1" fill="currentColor" stroke="none"/></svg>
+  </button>
   <div id="acct">
     <div class="who" id="acctname" data-i18n="notSignedIn">Not signed in</div>
     <div class="sub" data-i18n="freeLeft">Free messages left</div>
@@ -822,7 +827,6 @@ PAGE = r"""<!DOCTYPE html>
     <button id="logout" type="button" data-i18n="logout">Log out</button>
   </div>
 </header>
-<div id="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> <span data-i18n="demoText">Demo mode — this app is still being built. Answers may sometimes be wrong or a little slow.</span></div>
 <div id="chat">
   <div class="msg a" data-i18n="greeting">Assalamu Alaikum! I'm Chat Bash. Ask me anything about Bangladesh — history, food, sports, travel, today's news or prices — I'll try to give the right answer.</div>
 </div>
@@ -840,12 +844,6 @@ PAGE = r"""<!DOCTYPE html>
 <form id="f">
   <button class="icobtn" id="plus" type="button" aria-label="More options" data-i18n-aria="ariaMoreOpts">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
-  <button class="icobtn" id="thembtn" type="button" aria-label="Change theme" data-i18n-aria="ariaTheme">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.9-.9 1.9-1.9 0-.8-.5-1.3-.5-2.1 0-1 .8-1.7 1.9-1.7H17a4.5 4.5 0 004.5-4.5C21.5 6.4 17.2 3.5 12 3.5z"/><circle cx="7.6" cy="10.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.4" cy="6.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg>
-  </button>
-  <button class="icobtn" id="langbtn" type="button" aria-label="Language" data-i18n-aria="ariaLang">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><ellipse cx="12" cy="12" rx="3.9" ry="8.6"/><path d="M3.6 9.2h16.8M3.6 14.8h16.8"/></svg>
   </button>
   <input id="q" placeholder="Ask Chat Bash…" data-i18n-ph="askPh" autocomplete="off">
   <button class="icobtn" id="mic" type="button" aria-label="Voice input" data-i18n-aria="ariaMic">
@@ -887,6 +885,12 @@ PAGE = r"""<!DOCTYPE html>
   <div class="dfoot" id="dfoot" hidden>
     <div class="avatar" id="davatar">C</div>
     <div class="pmeta"><div class="pname" id="dname"></div><div class="pmail" id="dmail"></div></div>
+  <button class="icobtn" id="thembtn" type="button" aria-label="Change theme" data-i18n-aria="ariaTheme">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.9-.9 1.9-1.9 0-.8-.5-1.3-.5-2.1 0-1 .8-1.7 1.9-1.7H17a4.5 4.5 0 004.5-4.5C21.5 6.4 17.2 3.5 12 3.5z"/><circle cx="7.6" cy="10.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.4" cy="6.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button class="icobtn" id="langbtn" type="button" aria-label="Language" data-i18n-aria="ariaLang">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><ellipse cx="12" cy="12" rx="3.9" ry="8.6"/><path d="M3.6 9.2h16.8M3.6 14.8h16.8"/></svg>
+  </button>
   </div>
 </aside>
 
@@ -911,6 +915,14 @@ PAGE = r"""<!DOCTYPE html>
     <div class="sm-t" style="margin-top:10px" data-i18n="breakTitle">Time's up for this hour</div>
     <p class="sm-b" id="breakBody" data-i18n="breakBody">So that everyone gets a chance, chatting is limited to 10 minutes per hour.</p>
     <button id="breakOk" type="button" data-i18n="tryAgain">Try again</button>
+  </div>
+</div>
+<div id="infomodal" hidden>
+  <div class="sm-card">
+    <div class="sm-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg></div>
+    <div class="sm-t" data-i18n="infoTitle">Demo mode</div>
+    <p class="sm-b" data-i18n="infoBody">This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.</p>
+    <button id="infoOk" type="button" data-i18n="gotIt">Got it</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -979,7 +991,7 @@ fbUp:"Good answer",fbDown:"Bad answer",fbRegen:"Answer again",fbShare:"Share",fb
 descLite:"Light & fast — for everyday questions",descPro:"The smartest — for hard questions",descSwift:"Quick answers — for small questions",
 loginWait:"Logging in — please wait…",codeExpired:"That login code has expired — tap sign-in again.",loginIncomplete:"Login didn't complete — please try again.",browserOpening:"Opening the browser — choose your account there…",loginFailed:"Login failed — please try again.",backToApp:"Back to the Chat Bash app",
 soonBody:"{name} is still being built. It is not fully ready to talk to people properly yet. It will be ready very soon — though by \"soon\" we could mean ten or twelve years, or even two or three decades.",
-ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
+infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
 bn:{greeting:"আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।",
 chip1:"বাংলাদেশের জাতীয় মাছ কোনটি?",chip2:"পদ্মা সেতু সম্পর্কে বলো",chip3:"আজ ঢাকার আবহাওয়া কেমন?",chip4:"কক্সবাজার ভ্রমণের টিপস দাও",
 askPh:"Chat Bash-কে প্রশ্ন করো…",thinking:"ভাবছি",
@@ -1003,7 +1015,7 @@ fbUp:"ভালো লেগেছে",fbDown:"ভালো লাগেনি",
 descLite:"হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে",descPro:"সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে",descSwift:"ঝটপট উত্তর — ছোট প্রশ্নে",
 loginWait:"লগইন হচ্ছে — একটু অপেক্ষা করো…",codeExpired:"লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।",loginIncomplete:"লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।",browserOpening:"ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…",loginFailed:"লগইন হয়নি — আবার চেষ্টা করো।",backToApp:"Chat Bash অ্যাপে ফিরে যাও",
 soonBody:'{name} এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।',
-ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
+infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
 let curLang=(()=>{ try{ const l=localStorage.getItem('cb_lang'); return l==='bn'?'bn':'en'; }catch(e){ return 'en'; } })();
 function tr(k){ return (STR[curLang]&&STR[curLang][k])||STR.en[k]||k; }
 function locTag(){ return curLang==='bn'?'bn-BD':'en-GB'; }
@@ -1222,6 +1234,9 @@ function openSoon(m){
 }
 $('soonOk').onclick=()=>{ $('soonmodal').hidden=true; };
 $('soonmodal').addEventListener('click',e=>{ if(e.target.id==='soonmodal') $('soonmodal').hidden=true; });
+$('infobtn').onclick=e=>{ e.stopPropagation(); closeMenus(); $('infomodal').hidden=false; };
+$('infoOk').onclick=()=>{ $('infomodal').hidden=true; };
+$('infomodal').addEventListener('click',e=>{ if(e.target.id==='infomodal') $('infomodal').hidden=true; });
 function renderAcct(){
   const box=$('acctrem'); box.innerHTML='';
   MODELS.forEach(m=>{ const r=remaining[m.key];
@@ -1410,6 +1425,14 @@ if(AUTH_ON){
 }
 applyLang();
 renderAcct(); renderHist();
+/* first visit only: show the demo info once, as if the i button was tapped.
+   Anyone with traces of earlier use counts as a regular and is not bothered. */
+(function(){ try{
+  if(localStorage.getItem('cb_seeninfo')) return;
+  const regular=!!(localStorage.getItem('cb_appsess')||localStorage.getItem('cb_theme')||localStorage.getItem('cb_lang')||(JSON.parse(localStorage.getItem('cb_chats')||'[]').length));
+  localStorage.setItem('cb_seeninfo','1');
+  if(!regular) $('infomodal').hidden=false;
+}catch(e){} })();
 
 /* ---------------- submit ---------------- */
 form.onsubmit=async e=>{
