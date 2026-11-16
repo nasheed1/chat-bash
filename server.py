@@ -447,7 +447,14 @@ PAGE = r"""<!DOCTYPE html>
   /* ---------- chat ---------- */
   #chat{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:22px;
         width:100%;max-width:900px;margin:0 auto}
-  .msg{line-height:1.7;white-space:pre-wrap;word-break:break-word;font-size:16px}
+  .msg{line-height:1.7;word-break:break-word;font-size:16px}
+  .u{white-space:pre-wrap}
+  .a .txt p{margin:0 0 8px}
+  .a .txt p:last-child{margin-bottom:0}
+  .a .txt ul,.a .txt ol{margin:4px 0 8px;padding-left:22px}
+  .a .txt li{margin:2px 0}
+  .a .txt h4{font-size:16.5px;margin:10px 0 4px}
+  .a .txt code{background:var(--bubble);padding:1px 5px;border-radius:6px;font-size:14px}
   .u{align-self:flex-end;background:var(--bubble);color:var(--text);max-width:82%;
      padding:11px 17px;border-radius:26px}
   .a{align-self:stretch;padding:2px}
@@ -656,7 +663,25 @@ function newChat(){
 }
 
 /* ---------------- messages ---------------- */
-function add(text,cls){const d=document.createElement('div');d.className='msg '+cls;d.textContent=text;
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function md(s){
+  const lines=esc(s).split('\n'); let html='',inUl=false,inOl=false;
+  const inline=t=>t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  const closeLists=()=>{ if(inUl){html+='</ul>';inUl=false;} if(inOl){html+='</ol>';inOl=false;} };
+  lines.forEach(ln=>{
+    const t=ln.trim();
+    if(/^#{1,4}\s/.test(t)){ closeLists(); html+='<h4>'+inline(t.replace(/^#{1,4}\s/,''))+'</h4>'; }
+    else if(/^[-*•]\s+/.test(t)){ if(!inUl){closeLists();html+='<ul>';inUl=true;} html+='<li>'+inline(t.replace(/^[-*•]\s+/,''))+'</li>'; }
+    else if(/^\d+[.)]\s+/.test(t)){ if(!inOl){closeLists();html+='<ol>';inOl=true;} html+='<li>'+inline(t.replace(/^\d+[.)]\s+/,''))+'</li>'; }
+    else if(t===''){ closeLists(); }
+    else{ closeLists(); html+='<p>'+inline(t)+'</p>'; }
+  });
+  closeLists(); return html;
+}
+function setRich(el,text){ const x=el.querySelector('.txt'); if(x) x.innerHTML=md(text); }
+function add(text,cls){const d=document.createElement('div');d.className='msg '+cls;
+  if(cls==='a'){ const x=document.createElement('div'); x.className='txt'; x.innerHTML=md(text); d.appendChild(x); }
+  else d.textContent=text;
   chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;}
 function addUser(t){return add(t,'u');}
 function addBot(t){return add(t,'a');}
@@ -691,6 +716,7 @@ let speaking=false;
 function speak(t,btn){
   if(!('speechSynthesis' in window)){ toast('এই ডিভাইসে শোনানোর সুবিধা নেই'); return; }
   if(speaking){ speechSynthesis.cancel(); speaking=false; return; }
+  t=t.replace(/\*\*/g,'').replace(/[*#`]/g,'');
   const u=new SpeechSynthesisUtterance(t); u.lang='bn-BD';
   u.onend=()=>{speaking=false;}; u.onerror=()=>{speaking=false;};
   speechSynthesis.speak(u); speaking=true;
@@ -704,16 +730,16 @@ async function ask(text,histPairs){
 async function regen(i,el,btn){
   if(btn.disabled) return;
   const old=pairs[i].a; btn.disabled=true;
-  const first=el.firstChild; const txtNode=first&&first.nodeType===3?first:null;
+  const txtEl=el.querySelector('.txt');
   el.classList.add('dots');
-  if(txtNode) txtNode.textContent='ভাবছি ';
+  if(txtEl) txtEl.textContent='ভাবছি…';
   try{
     const {status,data}=await ask(pairs[i].u,pairs.slice(0,i));
     el.classList.remove('dots');
-    if(status===200&&data.reply){ pairs[i].a=data.reply; if(txtNode)txtNode.textContent=data.reply;
+    if(status===200&&data.reply){ pairs[i].a=data.reply; setRich(el,data.reply);
       if(data.remaining){remaining=data.remaining; renderAcct();} persist(); }
-    else{ if(txtNode)txtNode.textContent=old; toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
-  }catch(e){ el.classList.remove('dots'); if(txtNode)txtNode.textContent=old; toast('নেটওয়ার্কে সমস্যা'); }
+    else{ setRich(el,old); toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
+  }catch(e){ el.classList.remove('dots'); setRich(el,old); toast('নেটওয়ার্কে সমস্যা'); }
   btn.disabled=false;
 }
 
@@ -806,19 +832,19 @@ form.onsubmit=async e=>{
   q.value=''; syncSend(); addUser(text); send.disabled=true;
   chipsEl.style.display='none';
   const wait=addBot('ভাবছি '); wait.classList.add('dots');
-  wait.innerHTML='ভাবছি <span>.</span><span>.</span><span>.</span>';
+  wait.querySelector('.txt').innerHTML='ভাবছি <span>.</span><span>.</span><span>.</span>';
   const idx=pairs.length;
   try{
     const {status,data}=await ask(text,pairs);
     wait.classList.remove('dots');
-    if(status===401){ wait.textContent='লগইনের মেয়াদ শেষ — আবার লগইন করো।';
+    if(status===401){ setRich(wait,'লগইনের মেয়াদ শেষ — আবার লগইন করো।');
       if(AUTH_ON) loginEl.style.display='flex'; }
-    else if(status===429){ wait.textContent=data.reply; if(data.remaining){remaining=data.remaining; renderAcct();} }
-    else if(data.reply){ wait.textContent=data.reply;
+    else if(status===429){ setRich(wait,data.reply); if(data.remaining){remaining=data.remaining; renderAcct();} }
+    else if(data.reply){ setRich(wait,data.reply);
       pairs.push({u:text,a:data.reply,f:''}); attachActions(wait,idx); persist();
       if(data.remaining){remaining=data.remaining; renderAcct();} }
-    else wait.textContent='কিছু একটা সমস্যা হয়েছে।';
-  }catch(err){ wait.classList.remove('dots'); wait.textContent='নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।'; }
+    else setRich(wait,'কিছু একটা সমস্যা হয়েছে।');
+  }catch(err){ wait.classList.remove('dots'); setRich(wait,'নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।'); }
   send.disabled=false; q.focus();
 };
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
