@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Bash</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{min-height:100vh;background:linear-gradient(168deg,#5c1216,#38070d 55%,#260509);color:#f9efe4;
+       font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:18px}
+  .card{background:linear-gradient(170deg,#521419,#3d0d11);border:1px solid #83413d;border-radius:22px;
+        padding:26px 22px;width:min(340px,88vw);text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .ic{width:64px;height:64px;margin:0 auto 12px}
+  h1{font-size:19px;font-weight:700;margin-bottom:8px}
+  p{font-size:14.5px;line-height:1.65;color:#f3e2d4}
+  .bn{margin-top:14px;padding-top:14px;border-top:1px solid #6d3238}
+  a.btn{display:flex;align-items:center;justify-content:center;margin-top:18px;background:#7a2027;color:#f9efe4;
+        border:1px solid #6d3238;border-radius:999px;padding:11px;font-size:15px;text-decoration:none;line-height:1.3}
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="ic" viewBox="0 0 100 100" aria-hidden="true"><rect x="4" y="4" width="92" height="92" rx="24" fill="#0e7a43"/><path d="M26 30h48a8 8 0 0 1 8 8v22a8 8 0 0 1-8 8H46l-13 11v-11h-7a8 8 0 0 1-8-8V38a8 8 0 0 1 8-8z" fill="#fdf6e3"/><circle cx="50" cy="49" r="10.5" fill="#d42a24"/></svg>
+    <div id="t-en">
+      <h1>Work in progress</h1>
+      <p>Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.</p>
+    </div>
+    <div id="t-bn" class="bn">
+      <h1>কাজ চলতাছে</h1>
+      <p>এই মুহূর্তে Chat Bash-এ কাজ চলতাছে, তাই আপাতত চ্যাটিং করা যাবে না। একটু পরে আবার চেষ্টা করো।</p>
+    </div>
+    <a class="btn" href="https://chat-bash.vercel.app/"><span id="b-en">Try again</span><span id="b-bn" hidden>আবার চেষ্টা করো</span></a>
+  </div>
+<script>
+(function(){
+  function pick(lang){
+    if(lang==='bn'){ document.getElementById('t-en').hidden=true; document.getElementById('t-bn').classList.remove('bn');
+      document.getElementById('b-en').hidden=true; document.getElementById('b-bn').hidden=false; document.documentElement.lang='bn'; }
+    else if(lang==='en'){ document.getElementById('t-bn').hidden=true;
+      document.getElementById('b-bn').hidden=true; document.getElementById('b-en').hidden=false; }
+    /* if the saved language cannot be read, both texts stay visible */
+  }
+  var done=false;
+  function fromNative(){
+    try{
+      var P=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Preferences;
+      if(!P) return false;
+      P.get({key:'cb_lang'}).then(function(r){ if(!done){ done=true; pick(r&&r.value); } }).catch(function(){});
+      return true;
+    }catch(e){ return false; }
+  }
+  if(!fromNative()){ var n=0; var iv=setInterval(function(){ if(fromNative()||++n>10) clearInterval(iv); },120); }
+  setTimeout(function(){ done=true; },1500); /* after this, keep both languages */
+})();
+</script>
+</body>
+</html>
