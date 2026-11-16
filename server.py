@@ -756,7 +756,7 @@ function renderAcct(){
 }
 function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); }
 $('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); };
-$('logout').onclick=()=>{ closeMenus(); if(AUTH_ON) firebase.auth().signOut(); };
+$('logout').onclick=async()=>{ closeMenus(); if(AUTH_ON){ try{ const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication; if(FA) await FA.signOut(); }catch(e){} firebase.auth().signOut(); } };
 document.addEventListener('click',e=>{ if(!acct.contains(e.target)&&e.target!==$('dots')) acct.classList.remove('open');
   if(!plusmenu.contains(e.target)&&e.target!==$('plus')&&!$('plus').contains(e.target)) plusmenu.classList.remove('open'); });
 
@@ -813,7 +813,14 @@ if(AUTH_ON){
   });
   $('gbtn').onclick=async()=>{
     const prov=new firebase.auth.GoogleAuthProvider();
+    const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication;
     try{
+      if(FA){
+        const r=await FA.signInWithGoogle();
+        const tok=r&&r.credential&&r.credential.idToken;
+        if(tok){ await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(tok)); return; }
+        throw new Error('no-token');
+      }
       if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
       else{ await firebase.auth().signInWithPopup(prov); }
     }
