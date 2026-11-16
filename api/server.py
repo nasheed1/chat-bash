@@ -465,6 +465,36 @@ PAGE = r"""<!DOCTYPE html>
 <style>
   :root{--bg:#2a0509;--panel:#471216;--bubble:#7a2027;--menu:#521419;--text:#f9efe4;--muted:#e2b3a9;
         --accent:#eebd55;--accent-ink:#331a02;--line:#6d3238}
+  :root{color-scheme:dark}
+  [data-theme="cream"]{color-scheme:light;--bg:#f7f2e7;--panel:#fffdf8;--bubble:#f3e9d7;--menu:#fffdf8;--text:#2b2320;
+        --muted:#8a766a;--accent:#9e3a2e;--accent-ink:#fdf8ee;--line:#e7dcc8}
+  [data-theme="cream"] body{background:#f7f2e7}
+  [data-theme="cream"] .u{background:#9e3a2e;color:#fdf8ee}
+  [data-theme="cream"] #bamboo{opacity:.13}
+  [data-theme="cream"] #demo{background:#f6e7c8;color:#8a5a12;border-top-color:#e3cd97;border-bottom-color:#e3cd97}
+  [data-theme="cream"] #login .card{background:linear-gradient(170deg,#fffdf8,#f7ecd9);border-color:#e7dcc8}
+  [data-theme="cream"] .sm-card{background:linear-gradient(170deg,#fffdf8,#f7ecd9);border-color:#e7dcc8}
+  [data-theme="cream"] #drawer .avatar{color:#fdf8ee}
+  [data-theme="cream"] form{box-shadow:0 10px 30px rgba(120,70,40,.14)}
+  [data-theme="green"]{--bg:#051b12;--panel:#0a3524;--bubble:#12573c;--menu:#0d4530;--text:#eef7ee;
+        --muted:#a8cbb4;--accent:#ffd166;--accent-ink:#231a02;--line:#1f7a52}
+  [data-theme="green"] body{background:linear-gradient(170deg,#0d4530,#07271b 60%,#051b12)}
+  [data-theme="green"] .u{background:#d42a24;color:#fff}
+  [data-theme="green"] #bamboo{opacity:.35}
+  [data-theme="green"] #demo{background:rgba(4,32,22,.85);color:#ffd166;border-top-color:#1f7a52;border-bottom-color:#1f7a52}
+  [data-theme="green"] #login .card{background:linear-gradient(170deg,#0d4530,#07271b);border-color:#1f7a52}
+  [data-theme="green"] .sm-card{background:linear-gradient(170deg,#0d4530,#07271b);border-color:#1f7a52}
+  [data-theme="green"] #send{background:#d42a24;color:#fff}
+  /* ---------- theme menu ---------- */
+  #thememenu{position:fixed;left:52px;bottom:86px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
+            padding:6px;display:none;z-index:40;box-shadow:0 12px 34px rgba(0,0,0,.45);min-width:204px}
+  #thememenu.open{display:block;animation:popIn .16s ease}
+  #thememenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
+            font-family:inherit;font-size:14.5px;padding:9px 10px;border-radius:11px;cursor:pointer;text-align:left}
+  #thememenu button:hover{background:var(--bubble)}
+  #thememenu .sw{width:18px;height:18px;border-radius:50%;flex:none;border:1px solid var(--line)}
+  #thememenu .tk{margin-left:auto;width:8px;height:8px;border-radius:50%;flex:none}
+  #thememenu button.on .tk{background:var(--accent)}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;background:linear-gradient(168deg,#5c1216 0%,#38070d 55%,#260509 100%);color:var(--text);
        display:flex;flex-direction:column;height:100dvh;overflow:hidden}
@@ -703,6 +733,9 @@ PAGE = r"""<!DOCTYPE html>
   <button class="icobtn" id="plus" type="button" aria-label="আরও অপশন">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
   </button>
+  <button class="icobtn" id="thembtn" type="button" aria-label="থিম বদলাও">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.9-.9 1.9-1.9 0-.8-.5-1.3-.5-2.1 0-1 .8-1.7 1.9-1.7H17a4.5 4.5 0 004.5-4.5C21.5 6.4 17.2 3.5 12 3.5z"/><circle cx="7.6" cy="10.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.4" cy="6.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+  </button>
   <input id="q" placeholder="Chat Bash-কে প্রশ্ন করো…" autocomplete="off">
   <button class="icobtn" id="mic" type="button" aria-label="ভয়েসে লেখো">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0013 0M12 18v3M8.5 21h7"/></svg>
@@ -717,6 +750,12 @@ PAGE = r"""<!DOCTYPE html>
   <button type="button" id="pm-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট</button>
   <button type="button" id="pm-hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.9 2"/></svg> আগের চ্যাটগুলো</button>
   <button type="button" id="pm-model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 8h12.7M13.2 4.4 16.8 8l-3.6 3.6M20.2 16H7.5M10.8 12.4 7.2 16l3.6 3.6"/></svg> অন্য মডেল ব্যবহার করো</button>
+</div>
+
+<div id="thememenu">
+  <button type="button" data-th=""><span class="sw" style="background:linear-gradient(135deg,#7a2027,#38070d)"></span>লাল বাঁশ<span class="tk"></span></button>
+  <button type="button" data-th="cream"><span class="sw" style="background:linear-gradient(135deg,#f7f2e7 55%,#9e3a2e)"></span>ক্রিম<span class="tk"></span></button>
+  <button type="button" data-th="green"><span class="sw" style="background:linear-gradient(135deg,#12573c 55%,#d42a24)"></span>পতাকার সবুজ<span class="tk"></span></button>
 </div>
 
 <div id="scrim"></div>
@@ -992,11 +1031,20 @@ function renderAcct(){
   else{ $('acctname').textContent='লগইন করা নেই'; $('dfoot').hidden=true; $('logout').style.display='none'; }
   checkLimit();
 }
-function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); }
-$('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); };
+function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); }
+const THEME_BG={'':'#38070d','cream':'#f7f2e7','green':'#07271b'};
+function setTheme(t){ if(t) document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme;
+  try{ localStorage.setItem('cb_theme',t); }catch(e){}
+  const mc=document.querySelector('meta[name="theme-color"]'); if(mc) mc.content=THEME_BG[t]||'#38070d';
+  document.querySelectorAll('#thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.th===t)); }
+setTheme((()=>{ try{ return localStorage.getItem('cb_theme')||''; }catch(e){ return ''; } })());
+$('thembtn').onclick=e=>{ e.stopPropagation(); const m=$('thememenu'); m.classList.toggle('open'); plusmenu.classList.remove('open'); acct.classList.remove('open'); };
+document.querySelectorAll('#thememenu button').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); $('thememenu').classList.remove('open'); toast('থিম বদলানো হয়েছে'); }; });
+$('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); };
 $('logout').onclick=async()=>{ closeMenus(); if(AUTH_ON){ try{ const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication; if(FA) await FA.signOut(); }catch(e){} firebase.auth().signOut(); } };
 document.addEventListener('click',e=>{ if(!acct.contains(e.target)&&e.target!==$('dots')) acct.classList.remove('open');
-  if(!plusmenu.contains(e.target)&&e.target!==$('plus')&&!$('plus').contains(e.target)) plusmenu.classList.remove('open'); });
+  if(!plusmenu.contains(e.target)&&e.target!==$('plus')&&!$('plus').contains(e.target)) plusmenu.classList.remove('open');
+  const tm=$('thememenu'); if(!tm.contains(e.target)&&e.target!==$('thembtn')&&!$('thembtn').contains(e.target)) tm.classList.remove('open'); });
 
 /* ---------------- drawer ---------------- */
 function openDrawer(){ renderHist(); drawer.classList.add('on'); scrim.classList.add('on'); }
@@ -1006,7 +1054,7 @@ $('newchat').onclick=()=>{ newChat(); closeDrawer(); };
 $('newtop').onclick=()=>{ newChat(); };
 
 /* ---------------- plus menu ---------------- */
-$('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); };
+$('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); $('thememenu').classList.remove('open'); };
 $('pm-new').onclick=()=>{ closeMenus(); newChat(); };
 $('pm-hist').onclick=()=>{ closeMenus(); openDrawer(); };
 $('pm-model').onclick=()=>{ closeMenus(); let i=MODELS.findIndex(m=>m.key===curModel);
