@@ -414,49 +414,100 @@ PAGE = r"""<!DOCTYPE html>
 <link rel="apple-touch-icon" href="/icon-180.png">
 <title>__APP_NAME__ — বাংলাদেশের ফ্রি AI</title>
 <style>
-  :root{--bg:#131314;--panel:#1e1f20;--bubble:#28292a;--text:#e3e3e3;--muted:#9aa0a6;
+  :root{--bg:#131314;--panel:#1e1f20;--bubble:#28292a;--menu:#2b2c2d;--text:#e3e3e3;--muted:#9aa0a6;
         --accent:#57bb8a;--accent-ink:#06281a;--line:#333537}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;background:var(--bg);color:var(--text);
-       display:flex;flex-direction:column;height:100dvh}
-  header{display:flex;align-items:center;justify-content:space-between;gap:10px;
-         padding:12px 16px;width:100%;max-width:860px;margin:0 auto}
-  header .brand{font-size:20px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
-  header .brand small{display:block;font-size:11.5px;font-weight:400;color:var(--muted);letter-spacing:0}
-  #userbox{font-size:13.5px;display:flex;gap:8px;align-items:center;color:var(--muted);
-           max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #userbox button{background:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;
-       cursor:pointer;font-family:inherit;color:var(--text);font-size:13px}
+       display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  svg{display:block}
+  .icobtn{background:none;border:none;border-radius:50%;width:40px;height:40px;flex:0 0 40px;
+          display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text)}
+  .icobtn:hover{background:var(--bubble)}
+  .icobtn svg{width:22px;height:22px}
+  /* ---------- top bar ---------- */
+  header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
+  .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto}
+  #model{appearance:none;-webkit-appearance:none;background:none;border:none;color:var(--text);
+         font-family:inherit;font-size:17px;font-weight:600;padding:8px 2px;cursor:pointer;max-width:46vw}
+  #model option{background:var(--panel);color:var(--text);font-size:15px}
+  .chev{color:var(--muted);pointer-events:none}
+  /* ---------- account dropdown ---------- */
+  #acct{position:absolute;top:54px;right:10px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
+        padding:14px 16px;width:min(300px,86vw);box-shadow:0 12px 34px rgba(0,0,0,.55);display:none;z-index:40}
+  #acct.open{display:block}
+  #acct .who{font-size:14.5px;font-weight:600;margin-bottom:2px;word-break:break-all}
+  #acct .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  #acct .remline{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-top:1px solid var(--line)}
+  #acct .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+  #logout{margin-top:12px;width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+          border-radius:999px;padding:9px;font-family:inherit;font-size:14px;cursor:pointer}
+  /* ---------- demo strip ---------- */
   #demo{background:#2b2108;color:#f5c04e;border-top:1px solid #4a3a12;border-bottom:1px solid #4a3a12;
-        text-align:center;font-size:13px;line-height:1.5;padding:7px 14px}
-  #bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
-       padding:10px 16px 2px;width:100%;max-width:860px;margin:0 auto}
-  #bar select{padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel);
-       color:var(--text);font-family:inherit;font-size:14px;font-weight:600;max-width:100%}
-  #remain{font-size:13px;color:var(--muted)}
-  #chat{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:20px;
-        width:100%;max-width:860px;margin:0 auto}
-  .msg{line-height:1.65;white-space:pre-wrap;word-break:break-word;font-size:16px}
+        text-align:center;font-size:12.5px;line-height:1.45;padding:6px 14px}
+  /* ---------- chat ---------- */
+  #chat{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:22px;
+        width:100%;max-width:900px;margin:0 auto}
+  .msg{line-height:1.7;white-space:pre-wrap;word-break:break-word;font-size:16px}
   .u{align-self:flex-end;background:var(--bubble);color:var(--text);max-width:82%;
-     padding:10px 16px;border-radius:24px}
+     padding:11px 17px;border-radius:26px}
   .a{align-self:stretch;padding:2px}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 16px 2px;max-width:860px;margin:0 auto;width:100%}
-  .chip{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;
-        padding:8px 14px;font-size:13.5px;cursor:pointer;font-family:inherit}
-  .chip:hover{background:var(--panel)}
-  form{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:28px;
-       padding:6px 6px 6px 20px;width:calc(100% - 24px);max-width:836px;margin:10px auto 4px}
-  input{flex:1;padding:10px 0;border:none;font-size:16px;font-family:inherit;background:transparent;color:var(--text)}
-  input:focus{outline:none}
-  input::placeholder{color:var(--muted)}
-  button.send{background:var(--accent);color:var(--accent-ink);border:none;border-radius:50%;
-        width:40px;height:40px;flex:0 0 40px;font-size:19px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1}
-  button.send:disabled{opacity:.35}
-  .fineprint{text-align:center;color:var(--muted);font-size:12px;padding:2px 16px 10px}
+  .acts{display:flex;gap:2px;margin-top:10px;flex-wrap:wrap}
+  .acts .icobtn{width:34px;height:34px;flex-basis:34px;opacity:.85}
+  .acts .icobtn svg{width:19px;height:19px}
+  .acts .icobtn.on{color:var(--accent);opacity:1}
+  .acts .icobtn:disabled{opacity:.3;cursor:default}
   .dots span{animation:b 1.2s infinite;display:inline-block}
   .dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
   @keyframes b{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-  #login{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
+  /* ---------- chips ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 16px 2px;max-width:900px;margin:0 auto;width:100%}
+  .chip{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;
+        padding:8px 14px;font-size:13.5px;cursor:pointer;font-family:inherit}
+  .chip:hover{background:var(--panel)}
+  /* ---------- input pill ---------- */
+  form{display:flex;align-items:center;gap:2px;background:var(--panel);border-radius:28px;
+       padding:5px;width:calc(100% - 24px);max-width:876px;margin:10px auto 4px}
+  #q{flex:1;padding:10px 6px;border:none;font-size:16px;font-family:inherit;background:transparent;color:var(--text);min-width:0}
+  #q:focus{outline:none}
+  #q::placeholder{color:var(--muted)}
+  #send{background:var(--accent);color:var(--accent-ink);border:none;border-radius:50%;
+        width:40px;height:40px;flex:0 0 40px;cursor:pointer;display:none;align-items:center;justify-content:center}
+  #send svg{width:20px;height:20px}
+  #send:disabled{opacity:.35}
+  #mic.rec{color:#f28b82;background:#3a2320}
+  .fineprint{text-align:center;color:var(--muted);font-size:11.5px;padding:2px 16px 10px}
+  /* ---------- plus menu ---------- */
+  #plusmenu{position:fixed;left:14px;bottom:86px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
+            padding:6px;display:none;z-index:40;box-shadow:0 12px 34px rgba(0,0,0,.55);min-width:210px}
+  #plusmenu.open{display:block}
+  #plusmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
+                   font-family:inherit;font-size:14.5px;padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
+  #plusmenu button:hover{background:var(--bubble)}
+  /* ---------- drawer / history ---------- */
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:25}
+  #scrim.on{opacity:1;pointer-events:auto}
+  #drawer{position:fixed;top:0;left:0;bottom:0;width:min(302px,84vw);background:var(--panel);z-index:30;
+          transform:translateX(-105%);transition:transform .28s ease;display:flex;flex-direction:column;
+          border-right:1px solid var(--line)}
+  #drawer.on{transform:translateX(0)}
+  #drawer .dhead{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+  #drawer .dhead b{font-size:16.5px}
+  #newchat{margin:4px 14px 10px;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+           border-radius:999px;padding:10px;font-family:inherit;font-size:14.5px;cursor:pointer}
+  #histlist{flex:1;overflow-y:auto;padding:2px 8px}
+  .hitem{padding:10px 10px;border-radius:12px;cursor:pointer}
+  .hitem:hover,.hitem.cur{background:var(--bubble)}
+  .hitem .t{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hitem .d{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .hempty{color:var(--muted);font-size:13.5px;padding:12px 10px;line-height:1.6}
+  #drawer .dfoot{padding:12px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);word-break:break-all}
+  /* ---------- toast ---------- */
+  #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--menu);
+         color:var(--text);border:1px solid var(--line);font-size:13.5px;padding:9px 16px;border-radius:999px;
+         opacity:0;pointer-events:none;transition:all .25s;z-index:50;max-width:88vw;text-align:center}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* ---------- login ---------- */
+  #login{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
   #login .card{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:20px;
        padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
   #login h2{margin-bottom:8px;font-size:21px}
@@ -467,28 +518,70 @@ PAGE = r"""<!DOCTYPE html>
 </head>
 <body>
 <header>
-  <div class="brand">🇧🇩 __APP_NAME__<small>বাংলাদেশের নিজের ফ্রি AI</small></div>
-  <span id="userbox"></span>
+  <button class="icobtn" id="burger" type="button" aria-label="মেনু">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="modelwrap">
+    <select id="model" aria-label="মডেল"></select>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <button class="icobtn" id="newtop" type="button" aria-label="নতুন চ্যাট">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+  </button>
+  <button class="icobtn" id="dots" type="button" aria-label="আরও">
+    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+  </button>
+  <div id="acct">
+    <div class="who" id="acctname">লগইন করা নেই</div>
+    <div class="sub">এই সপ্তাহে বাকি ফ্রি মেসেজ</div>
+    <div id="acctrem"></div>
+    <p class="note">⚠ ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
+    <button id="logout" type="button">লগআউট</button>
+  </div>
 </header>
 <div id="demo">⚠ ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।</div>
-<div id="bar">
-  <select id="model"></select>
-  <span id="remain"></span>
-</div>
 <div id="chat">
   <div class="msg a">আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।</div>
 </div>
-<div class="chips">
+<div class="chips" id="chips">
   <button class="chip" type="button">বাংলাদেশের জাতীয় মাছ কোনটি?</button>
   <button class="chip" type="button">পদ্মা সেতু সম্পর্কে বলো</button>
   <button class="chip" type="button">আজ ঢাকার আবহাওয়া কেমন?</button>
   <button class="chip" type="button">কক্সবাজার ভ্রমণের টিপস দাও</button>
 </div>
 <form id="f">
+  <button class="icobtn" id="plus" type="button" aria-label="আরও অপশন">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
   <input id="q" placeholder="Chat Bash-কে প্রশ্ন করো…" autocomplete="off">
-  <button class="send" id="send" type="submit" aria-label="পাঠাও">↑</button>
+  <button class="icobtn" id="mic" type="button" aria-label="ভয়েসে লেখো">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+  </button>
+  <button id="send" type="submit" aria-label="পাঠাও">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
 </form>
 <p class="fineprint">Chat Bash ভুল করতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও। সম্পূর্ণ ফ্রি প্রযুক্তিতে তৈরি, কোনো কোটি টাকার প্রকল্প নয়।</p>
+
+<div id="plusmenu">
+  <button type="button" id="pm-new">✎&nbsp; নতুন চ্যাট</button>
+  <button type="button" id="pm-hist">🕘&nbsp; আগের চ্যাটগুলো</button>
+  <button type="button" id="pm-model">🔀&nbsp; অন্য মডেল ব্যবহার করো</button>
+</div>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <div class="dhead"><b>🇧🇩 Chat Bash</b>
+    <button class="icobtn" id="dclose" type="button" aria-label="বন্ধ করো">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <button id="newchat" type="button">✎ নতুন চ্যাট শুরু করো</button>
+  <div id="histlist"></div>
+  <div class="dfoot" id="dfoot"></div>
+</aside>
+
+<div id="toast"></div>
 
 <div id="login">
   <div class="card">
@@ -505,93 +598,235 @@ PAGE = r"""<!DOCTYPE html>
 const FB_CONFIG = __FB_CONFIG__;
 const MODELS = __MODELS_JSON__;
 const AUTH_ON = Object.keys(FB_CONFIG).length > 0;
-const chat=document.getElementById('chat'),form=document.getElementById('f'),
-      q=document.getElementById('q'),send=document.getElementById('send'),
-      modelSel=document.getElementById('model'),remainEl=document.getElementById('remain'),
-      userbox=document.getElementById('userbox'),loginEl=document.getElementById('login');
-let history=[], currentUser=null, remaining={};
+const $=id=>document.getElementById(id);
+const chat=$('chat'),form=$('f'),q=$('q'),send=$('send'),mic=$('mic'),
+      modelSel=$('model'),loginEl=$('login'),chipsEl=$('chips'),
+      drawer=$('drawer'),scrim=$('scrim'),acct=$('acct'),plusmenu=$('plusmenu');
+const GREETING='আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।';
+let currentUser=null, remaining={}, pairs=[], currentId=null;
 
-MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.key;
-  o.textContent=m.name+' — '+m.desc; modelSel.appendChild(o);});
+const IC={
+ up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11H4a1 1 0 01-1-1v-9a1 1 0 011-1h3zm0 0l4.2-7.1c1.6 0 2.8 1.3 2.6 2.9L13.2 10H20a2 2 0 012 2.4l-1.2 6.8A2 2 0 0118.8 21H7"/></svg>',
+ down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V3h3a1 1 0 011 1v9a1 1 0 01-1 1h-3zm0 0l-4.2 7.1c-1.6 0-2.8-1.3-2.6-2.9L10.8 14H4a2 2 0 01-2-2.4l1.2-6.8A2 2 0 015.2 3H17"/></svg>',
+ regen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 4v5h-5"/></svg>',
+ share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.2 10.8l7-4M8.2 13.2l7 4"/></svg>',
+ copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+ speak:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M18.4 5.6a9 9 0 010 12.8"/></svg>'};
+
+MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.key;o.textContent=m.name;modelSel.appendChild(o);});
 modelSel.value='__DEFAULT_MODEL__';
 
-function showRemaining(){
-  const m=MODELS.find(x=>x.key===modelSel.value);
-  const r=remaining[modelSel.value];
-  remainEl.textContent = (r===undefined)? ('সপ্তাহে '+m.cap+'টি ফ্রি মেসেজ') :
-    ('এই সপ্তাহে বাকি: '+r+' / '+m.cap);
-}
-modelSel.onchange=showRemaining;
+let toastTimer=null;
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('on'),1800);}
 
+/* ---------------- history storage ---------------- */
+function loadChats(){try{return JSON.parse(localStorage.getItem('cb_chats')||'[]');}catch(e){return[];}}
+function storeChats(c){try{localStorage.setItem('cb_chats',JSON.stringify(c.slice(0,30)));}catch(e){}}
+function persist(){
+  if(!pairs.length) return;
+  const all=loadChats();
+  if(!currentId){ currentId='c'+Date.now(); all.unshift({id:currentId,ts:Date.now(),pairs:pairs}); }
+  else{ const c=all.find(x=>x.id===currentId); if(c){c.pairs=pairs;c.ts=Date.now();} else all.unshift({id:currentId,ts:Date.now(),pairs:pairs}); }
+  storeChats(all); renderHist();
+}
+function renderHist(){
+  const all=loadChats(), list=$('histlist'); list.innerHTML='';
+  if(!all.length){ list.innerHTML='<div class="hempty">এখনো কোনো আগের চ্যাট নেই। প্রশ্ন করলেই এখানে হিস্ট্রি জমা হবে।</div>'; return; }
+  all.forEach(c=>{
+    const d=document.createElement('div'); d.className='hitem'+(c.id===currentId?' cur':'');
+    const t=document.createElement('div'); t.className='t'; t.textContent=(c.pairs&&c.pairs[0]?c.pairs[0].u:'নতুন চ্যাট');
+    const s=document.createElement('div'); s.className='d'; s.textContent=new Date(c.ts).toLocaleDateString('bn-BD',{day:'numeric',month:'long'})+' · '+(c.pairs?c.pairs.length:0)+'টি প্রশ্ন';
+    d.appendChild(t); d.appendChild(s);
+    d.onclick=()=>{ loadChat(c); closeDrawer(); };
+    list.appendChild(d);
+  });
+}
+function loadChat(c){
+  currentId=c.id; pairs=(c.pairs||[]).map(p=>({u:p.u,a:p.a,f:p.f||''}));
+  chat.innerHTML='';
+  pairs.forEach((p,i)=>{ addUser(p.u); const el=addBot(p.a); attachActions(el,i); markFb(el,i); });
+  chipsEl.style.display=pairs.length?'none':'flex';
+  chat.scrollTop=chat.scrollHeight; renderHist();
+}
+function newChat(){
+  pairs=[]; currentId=null; chat.innerHTML='';
+  const g=document.createElement('div'); g.className='msg a'; g.textContent=GREETING; chat.appendChild(g);
+  chipsEl.style.display='flex'; q.value=''; syncSend(); q.focus(); renderHist();
+}
+
+/* ---------------- messages ---------------- */
 function add(text,cls){const d=document.createElement('div');d.className='msg '+cls;d.textContent=text;
   chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;}
-document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{q.value=c.textContent;form.requestSubmit();});
+function addUser(t){return add(t,'u');}
+function addBot(t){return add(t,'a');}
+function markFb(el,i){
+  const row=el.querySelector('.acts'); if(!row) return;
+  row.querySelectorAll('[data-fb]').forEach(b=>b.classList.toggle('on',pairs[i]&&pairs[i].f===b.dataset.fb));
+}
+function attachActions(el,i){
+  if(el.querySelector('.acts')) return;
+  const row=document.createElement('div'); row.className='acts';
+  const mk=(svg,label,fn,fb)=>{const b=document.createElement('button');b.type='button';b.className='icobtn';
+    b.innerHTML=svg;b.title=label;b.setAttribute('aria-label',label);if(fb)b.dataset.fb=fb;
+    b.onclick=()=>fn(b);return b;};
+  row.appendChild(mk(IC.up,'ভালো লেগেছে',b=>{pairs[i].f=pairs[i].f==='up'?'':'up';persist();markFb(el,i);},'up'));
+  row.appendChild(mk(IC.down,'ভালো লাগেনি',b=>{pairs[i].f=pairs[i].f==='down'?'':'down';persist();markFb(el,i);},'down'));
+  row.appendChild(mk(IC.regen,'আবার উত্তর দাও',b=>regen(i,el,b)));
+  row.appendChild(mk(IC.share,'শেয়ার',()=>shareText(pairs[i].a)));
+  row.appendChild(mk(IC.copy,'কপি',()=>copyText(pairs[i].a)));
+  row.appendChild(mk(IC.speak,'শুনুন',b=>speak(pairs[i].a,b)));
+  el.appendChild(row);
+}
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('কপি হয়েছে ✓')).catch(()=>toast('কপি হয়নি')); }
+  else{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
+        try{document.execCommand('copy'); toast('কপি হয়েছে ✓');}catch(e){toast('কপি হয়নি');} ta.remove(); }
+}
+function shareText(t){
+  if(navigator.share){ navigator.share({text:t}).catch(()=>{}); }
+  else copyText(t);
+}
+let speaking=false;
+function speak(t,btn){
+  if(!('speechSynthesis' in window)){ toast('এই ডিভাইসে শোনানোর সুবিধা নেই'); return; }
+  if(speaking){ speechSynthesis.cancel(); speaking=false; return; }
+  const u=new SpeechSynthesisUtterance(t); u.lang='bn-BD';
+  u.onend=()=>{speaking=false;}; u.onerror=()=>{speaking=false;};
+  speechSynthesis.speak(u); speaking=true;
+}
+async function ask(text,histPairs){
+  let token=''; if(currentUser) token=await currentUser.getIdToken();
+  const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:text,history:histPairs.map(p=>[p.u,p.a]),model:modelSel.value,idToken:token})});
+  return {status:r.status,data:await r.json()};
+}
+async function regen(i,el,btn){
+  if(btn.disabled) return;
+  const old=pairs[i].a; btn.disabled=true;
+  const first=el.firstChild; const txtNode=first&&first.nodeType===3?first:null;
+  el.classList.add('dots');
+  if(txtNode) txtNode.textContent='ভাবছি ';
+  try{
+    const {status,data}=await ask(pairs[i].u,pairs.slice(0,i));
+    el.classList.remove('dots');
+    if(status===200&&data.reply){ pairs[i].a=data.reply; if(txtNode)txtNode.textContent=data.reply;
+      if(data.remaining){remaining=data.remaining; renderAcct();} persist(); }
+    else{ if(txtNode)txtNode.textContent=old; toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
+  }catch(e){ el.classList.remove('dots'); if(txtNode)txtNode.textContent=old; toast('নেটওয়ার্কে সমস্যা'); }
+  btn.disabled=false;
+}
 
+/* ---------------- account / menus ---------------- */
+function renderAcct(){
+  const box=$('acctrem'); box.innerHTML='';
+  MODELS.forEach(m=>{ const r=remaining[m.key];
+    const line=document.createElement('div'); line.className='remline';
+    line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?('সপ্তাহে '+m.cap+'টি'):('বাকি '+r+' / '+m.cap))+'</span>';
+    box.appendChild(line); });
+  if(currentUser){ $('acctname').textContent=currentUser.displayName||currentUser.email||'';
+    $('dfoot').textContent=currentUser.email||''; $('logout').style.display='block'; }
+  else{ $('acctname').textContent='লগইন করা নেই'; $('dfoot').textContent=''; $('logout').style.display='none'; }
+}
+function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); }
+$('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); };
+$('logout').onclick=()=>{ closeMenus(); if(AUTH_ON) firebase.auth().signOut(); };
+document.addEventListener('click',e=>{ if(!acct.contains(e.target)&&e.target!==$('dots')) acct.classList.remove('open');
+  if(!plusmenu.contains(e.target)&&e.target!==$('plus')&&!$('plus').contains(e.target)) plusmenu.classList.remove('open'); });
+
+/* ---------------- drawer ---------------- */
+function openDrawer(){ renderHist(); drawer.classList.add('on'); scrim.classList.add('on'); }
+function closeDrawer(){ drawer.classList.remove('on'); scrim.classList.remove('on'); }
+$('burger').onclick=openDrawer; $('dclose').onclick=closeDrawer; scrim.onclick=closeDrawer;
+$('newchat').onclick=()=>{ newChat(); closeDrawer(); };
+$('newtop').onclick=()=>{ newChat(); };
+
+/* ---------------- plus menu ---------------- */
+$('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); };
+$('pm-new').onclick=()=>{ closeMenus(); newChat(); };
+$('pm-hist').onclick=()=>{ closeMenus(); openDrawer(); };
+$('pm-model').onclick=()=>{ closeMenus(); const i=MODELS.findIndex(m=>m.key===modelSel.value);
+  modelSel.value=MODELS[(i+1)%MODELS.length].key; toast('মডেল: '+MODELS[(i+1)%MODELS.length].name); q.focus(); };
+
+/* ---------------- chips ---------------- */
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ q.value=c.textContent; form.requestSubmit(); });
+
+/* ---------------- mic / send toggle ---------------- */
+function syncSend(){ const has=q.value.trim().length>0; send.style.display=has?'flex':'none'; mic.style.display=has?'none':'flex'; }
+q.addEventListener('input',syncSend); syncSend();
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+mic.onclick=()=>{
+  if(!SR){ toast('এই ব্রাউজারে ভয়েস ইনপুট নেই — লিখে প্রশ্ন করো'); return; }
+  try{
+    const r=new SR(); r.lang='bn-BD'; r.interimResults=false;
+    mic.classList.add('rec');
+    r.onresult=e=>{ q.value=e.results[0][0].transcript; syncSend(); };
+    r.onend=()=>mic.classList.remove('rec');
+    r.onerror=()=>{ mic.classList.remove('rec'); toast('শোনা যায়নি, আবার চেষ্টা করো'); };
+    r.start();
+  }catch(e){ toast('ভয়েস ইনপুট চালু হয়নি'); }
+};
+
+/* ---------------- auth ---------------- */
 async function refreshMe(){
   if(!currentUser) return;
   try{
     const t=await currentUser.getIdToken();
     const r=await fetch('/me',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({idToken:t})});
-    const d=await r.json(); if(d.remaining){remaining=d.remaining; showRemaining();}
+    const d=await r.json(); if(d.remaining){ remaining=d.remaining; renderAcct(); }
   }catch(e){}
 }
-
 if(AUTH_ON){
   firebase.initializeApp(FB_CONFIG);
   firebase.auth().onAuthStateChanged(u=>{
     currentUser=u;
-    if(u){
-      loginEl.style.display='none';
-      userbox.innerHTML='<span>'+(u.displayName||u.email)+'</span>';
-      const b=document.createElement('button'); b.textContent='লগআউট'; b.type='button';
-      b.onclick=()=>firebase.auth().signOut(); userbox.appendChild(b);
-      refreshMe();
-    }else{
-      userbox.innerHTML=''; loginEl.style.display='flex';
-    }
+    if(u){ loginEl.style.display='none'; refreshMe(); }
+    else{ loginEl.style.display='flex'; }
+    renderAcct();
   });
-  document.getElementById('gbtn').onclick=async()=>{
+  $('gbtn').onclick=async()=>{
     const prov=new firebase.auth.GoogleAuthProvider();
     try{
       if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
       else{ await firebase.auth().signInWithPopup(prov); }
     }
-    catch(e){ document.getElementById('lerr').textContent='লগইন হয়নি: '+e.message; }
+    catch(e){ $('lerr').textContent='লগইন হয়নি: '+e.message; }
   };
 }else{
-  userbox.innerHTML='<span>(ডেভ মোড — লগইন বন্ধ)</span>';
+  renderAcct();
 }
-showRemaining();
+renderAcct(); renderHist();
 
+/* ---------------- submit ---------------- */
 form.onsubmit=async e=>{
   e.preventDefault();
   const text=q.value.trim(); if(!text) return;
   if(AUTH_ON && !currentUser){ loginEl.style.display='flex'; return; }
-  q.value=''; add(text,'u'); send.disabled=true;
-  const ch=document.querySelector('.chips'); if(ch) ch.style.display='none';
-  const wait=add('ভাবছি ','a'); wait.classList.add('dots');
+  q.value=''; syncSend(); addUser(text); send.disabled=true;
+  chipsEl.style.display='none';
+  const wait=addBot('ভাবছি '); wait.classList.add('dots');
   wait.innerHTML='ভাবছি <span>.</span><span>.</span><span>.</span>';
+  const idx=pairs.length;
   try{
-    let token=''; if(currentUser) token=await currentUser.getIdToken();
-    const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:text,history:history,model:modelSel.value,idToken:token})});
-    const data=await r.json();
+    const {status,data}=await ask(text,pairs);
     wait.classList.remove('dots');
-    if(r.status===401){ wait.textContent='লগইনের মেয়াদ শেষ — আবার লগইন করো।';
+    if(status===401){ wait.textContent='লগইনের মেয়াদ শেষ — আবার লগইন করো।';
       if(AUTH_ON) loginEl.style.display='flex'; }
-    else if(r.status===429){ wait.textContent=data.reply; if(data.remaining){remaining=data.remaining; showRemaining();} }
-    else{ wait.textContent=data.reply||'কিছু একটা সমস্যা হয়েছে।';
-      history.push([text,wait.textContent]);
-      if(data.remaining){remaining=data.remaining; showRemaining();} }
+    else if(status===429){ wait.textContent=data.reply; if(data.remaining){remaining=data.remaining; renderAcct();} }
+    else if(data.reply){ wait.textContent=data.reply;
+      pairs.push({u:text,a:data.reply,f:''}); attachActions(wait,idx); persist();
+      if(data.remaining){remaining=data.remaining; renderAcct();} }
+    else wait.textContent='কিছু একটা সমস্যা হয়েছে।';
   }catch(err){ wait.classList.remove('dots'); wait.textContent='নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।'; }
   send.disabled=false; q.focus();
 };
-q.focus();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
+q.focus();
 </script>
 </body>
-</html>"""
+</html>
+"""
 
 
 def public_models():
