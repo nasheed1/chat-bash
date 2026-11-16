@@ -687,6 +687,57 @@ PAGE = r"""<!DOCTYPE html>
   .sp-ver{text-align:center;color:var(--muted);font-size:12.5px}
   #delmodal #delNo{background:none;border:1px solid var(--line);color:var(--text);margin-top:8px}
   #delmodal #delYes{background:#a02c22;color:#fdf3e7}
+  /* settings v2 — flat, calm, Claude-like */
+  #setpage{background:var(--bg)}
+  #setpage:not([hidden]){animation:spIn .24s ease}
+  @keyframes spIn{from{transform:translateX(26px);opacity:.35}to{transform:none;opacity:1}}
+  .sp-head{background:var(--bg);padding:12px 14px}
+  .sp-title{font-size:20px}
+  .sp-body{gap:8px;padding:6px 18px 34px}
+  .sp-card{background:none;border:none;border-radius:0;padding:8px 2px 2px}
+  .sp-card .pmeta{min-width:0;flex:1}
+  .sp-card .pname,.sp-card .pmail{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-badge{background:none;border:1px solid var(--line);color:var(--text);font-weight:600;padding:3px 9px}
+  .sp-planline{color:var(--muted);font-size:13.5px;padding:2px 2px 10px;border-bottom:1px solid var(--line)}
+  .sp-sec{text-transform:none;letter-spacing:0;font-size:13px;margin:14px 2px 2px}
+  .sp-group{background:none;border:none;border-radius:0;padding:0;gap:0}
+  .sp-rowlbl{padding:13px 2px 9px;font-weight:500;font-size:15.5px}
+  .sp-rowlbl svg{color:var(--text);opacity:.85}
+  .sp-row{padding:12px 2px;border-bottom:1px solid var(--line)}
+  .sp-rl{font-weight:500;font-size:15.5px}
+  .sp-rl svg{color:var(--text);opacity:.85}
+  .sp-div{display:none}
+  .sp-link{padding:13px 2px;font-size:15.5px;border-bottom:1px solid var(--line)}
+  .sp-group .sp-link:last-child{border-bottom:none}
+  .sp-link svg{color:var(--text);opacity:.85}
+  .sp-link.danger svg{color:#ff9d8a}
+  .sp-val{margin-left:auto;color:var(--muted);font-size:14.5px;font-weight:400}
+  .chevdn{margin-left:6px;width:16px;height:16px;color:var(--muted);flex:none}
+  .sp-opts{display:flex;flex-direction:column;padding:2px 0 6px}
+  .sp-opts[hidden]{display:none}
+  .sp-opts button{display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--text);font:inherit;
+                  font-size:15px;padding:11px 2px 11px 32px;cursor:pointer;text-align:left}
+  .sp-opts .tk{margin-left:auto;width:8px;height:8px;border-radius:50%;flex:none}
+  .sp-opts button.on .tk{background:var(--accent)}
+  .sp-opts button.on{font-weight:700}
+  .cmrow{gap:10px;padding:2px 2px 8px}
+  .cmcard{font-size:12.5px;gap:7px;transition:transform .15s ease}
+  .cmcard:active{transform:scale(.95)}
+  .cmprev{height:52px;border-radius:10px;border:1.5px solid var(--line);position:relative;overflow:hidden;
+          transition:border-color .25s ease,box-shadow .25s ease}
+  .cmcard.on .cmprev{border-color:var(--text);box-shadow:0 0 0 1px var(--text)}
+  .cmcard.on{color:var(--text)}
+  .cmprev i{position:absolute;border-radius:2px;background:var(--mf);display:block}
+  .cmprev .mb{left:0;right:0;top:0;height:24%;background:var(--ma);border-radius:0}
+  .cmprev .m1{left:8%;top:38%;width:56%;height:10%}
+  .cmprev .m2{left:8%;top:56%;width:38%;height:10%}
+  .cmprev .mp{right:8%;bottom:8%;width:27%;height:17%;background:var(--ma);border-radius:99px}
+  .switch{width:46px;height:27px;background:none;border:1.5px solid var(--muted)}
+  .switch span{width:19px;height:19px;top:2.5px;left:3px;background:var(--muted)}
+  .switch.on{background:var(--accent);border-color:var(--accent)}
+  .switch.on span{left:21px;background:var(--accent-ink)}
+  #spLogout{background:none;border:none;border-top:1px solid var(--line);border-radius:0;text-align:left;padding:15px 2px}
+  html.th-anim *,html.th-anim *::before,html.th-anim *::after{transition:background-color .5s ease,color .5s ease,border-color .5s ease,box-shadow .5s ease !important}
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
   .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
   #modelBtn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text);
@@ -990,24 +1041,25 @@ PAGE = r"""<!DOCTYPE html>
   <div class="sp-body">
     <div class="sp-card">
       <div class="avatar" id="spAvatar">C</div>
-      <div class="pmeta"><div class="pname" id="spName"></div><div class="pmail" id="spMail"></div><div class="sp-plan" id="spPlan"></div></div>
+      <div class="pmeta"><div class="pname" id="spName"></div><div class="pmail" id="spMail"></div></div>
       <span class="sp-badge" id="spBadge">Free</span>
     </div>
+    <p class="sp-planline" id="spPlan"></p>
     <div class="sp-sec" data-i18n="appearance">Appearance</div>
     <div class="sp-group">
       <div class="sp-rowlbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.9-.9 1.9-1.9 0-.8-.5-1.3-.5-2.1 0-1 .8-1.7 1.9-1.7H17a4.5 4.5 0 004.5-4.5C21.5 6.4 17.2 3.5 12 3.5z"/><circle cx="7.6" cy="10.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.4" cy="6.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg><span data-i18n="colorMode">Color mode</span></div>
       <div class="cmrow">
-        <button class="cmcard" data-th="" type="button"><span class="cmprev" style="background:linear-gradient(160deg,#7a2027,#38070d)"></span><span data-i18n="thRed">Red Bamboo</span></button>
-        <button class="cmcard" data-th="cream" type="button"><span class="cmprev" style="background:linear-gradient(160deg,#fffdf8,#f3e9d7)"></span><span data-i18n="thCream">Cream</span></button>
-        <button class="cmcard" data-th="green" type="button"><span class="cmprev" style="background:linear-gradient(160deg,#12573c,#07271b)"></span><span data-i18n="thGreen">Flag Green</span></button>
-        <button class="cmcard" data-th="system" type="button"><span class="cmprev" style="background:linear-gradient(115deg,#f7f2e7 50%,#38070d 50%)"></span><span data-i18n="thSystem">System</span></button>
+        <button class="cmcard" data-th="" type="button"><span class="cmprev" style="background:#471216;--mf:#f9efe4;--ma:#eebd55"><i class="mb"></i><i class="m1"></i><i class="m2"></i><i class="mp"></i></span><span data-i18n="thRed">Red Bamboo</span></button>
+        <button class="cmcard" data-th="cream" type="button"><span class="cmprev" style="background:#fffdf8;--mf:#2b2320;--ma:#9e3a2e"><i class="mb"></i><i class="m1"></i><i class="m2"></i><i class="mp"></i></span><span data-i18n="thCream">Cream</span></button>
+        <button class="cmcard" data-th="green" type="button"><span class="cmprev" style="background:#0a3524;--mf:#eef7ee;--ma:#ffd166"><i class="mb"></i><i class="m1"></i><i class="m2"></i><i class="mp"></i></span><span data-i18n="thGreen">Flag Green</span></button>
+        <button class="cmcard" data-th="system" type="button"><span class="cmprev" style="background:linear-gradient(115deg,#f7f2e7 50%,#38070d 50%);--mf:#8a766a;--ma:#9e3a2e"><i class="mb"></i><i class="m1"></i><i class="m2"></i><i class="mp"></i></span><span data-i18n="thSystem">System</span></button>
       </div>
       <div class="sp-div"></div>
-      <div class="sp-rowlbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6.2V4.2h14v2M12 4.2V20M9.2 20h5.6"/></svg><span data-i18n="fontStyle">Font style</span></div>
-      <div class="segrow" id="fontseg">
-        <button type="button" data-f="" data-i18n="fontDefault">Default</button>
-        <button type="button" data-f="large" data-i18n="fontLarge">Large</button>
-        <button type="button" data-f="xl" data-i18n="fontXL">Extra large</button>
+      <button class="sp-link" id="fontRow" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6.2V4.2h14v2M12 4.2V20M9.2 20h5.6"/></svg><span data-i18n="fontStyle">Font style</span><span class="sp-val" id="fontVal">Default</span><svg class="chevdn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 9L12 15.5 18.5 9"/></svg></button>
+      <div class="sp-opts" id="fontOpts" hidden>
+        <button type="button" data-f=""><span data-i18n="fontDefault">Default</span><span class="tk"></span></button>
+        <button type="button" data-f="large"><span data-i18n="fontLarge">Large</span><span class="tk"></span></button>
+        <button type="button" data-f="xl"><span data-i18n="fontXL">Extra large</span><span class="tk"></span></button>
       </div>
     </div>
     <div class="sp-sec" data-i18n="chatSec">Chat</div>
@@ -1017,11 +1069,11 @@ PAGE = r"""<!DOCTYPE html>
         <button class="switch" id="haptog" type="button" role="switch" aria-checked="true"><span></span></button>
       </div>
       <div class="sp-div"></div>
-      <div class="sp-rowlbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.8" width="6" height="11" rx="3"/><path d="M5.6 11.4a6.4 6.4 0 0012.8 0M12 17.8V21"/></svg><span data-i18n="voiceDict">Voice dictation</span></div>
-      <div class="segrow" id="vlangseg">
-        <button type="button" data-v="auto" data-i18n="voiceAuto">Auto</button>
-        <button type="button" data-v="bn">বাংলা</button>
-        <button type="button" data-v="en">English</button>
+      <button class="sp-link" id="vlangRow" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.8" width="6" height="11" rx="3"/><path d="M5.6 11.4a6.4 6.4 0 0012.8 0M12 17.8V21"/></svg><span data-i18n="voiceDict">Voice dictation</span><span class="sp-val" id="vlangVal">Auto</span><svg class="chevdn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 9L12 15.5 18.5 9"/></svg></button>
+      <div class="sp-opts" id="vlangOpts" hidden>
+        <button type="button" data-v="auto"><span data-i18n="voiceAuto">Auto</span><span class="tk"></span></button>
+        <button type="button" data-v="bn"><span>বাংলা</span><span class="tk"></span></button>
+        <button type="button" data-v="en"><span>English</span><span class="tk"></span></button>
       </div>
     </div>
     <div class="sp-sec" data-i18n="privacySec">Privacy</div>
@@ -1382,7 +1434,9 @@ function renderAcct(){
 function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); $('langmenu').classList.remove('open'); }
 const THEME_BG={'':'#38070d','cream':'#f7f2e7','green':'#07271b'};
 function resolveTheme(t){ if(t==='system') return (window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'':'cream'; return t; }
-function setTheme(t){ const r=resolveTheme(t); if(r) document.documentElement.dataset.theme=r; else delete document.documentElement.dataset.theme;
+function setTheme(t){ const r=resolveTheme(t); const old=document.documentElement.dataset.theme||'';
+  if(old!==r){ document.documentElement.classList.add('th-anim'); setTimeout(()=>document.documentElement.classList.remove('th-anim'),650); }
+  if(r) document.documentElement.dataset.theme=r; else delete document.documentElement.dataset.theme;
   try{ localStorage.setItem('cb_theme',t); }catch(e){}
   const mc=document.querySelector('meta[name="theme-color"]'); if(mc) mc.content=THEME_BG[r]||'#38070d';
   document.querySelectorAll('#thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.th===t));
@@ -1594,7 +1648,11 @@ function hapOn(){ try{ return localStorage.getItem('cb_haptics')!=='0'; }catch(e
 function dictLang(){ try{ const v=localStorage.getItem('cb_vlang'); if(v==='bn') return 'bn-BD'; if(v==='en') return 'en-US'; }catch(e){} return curLang==='bn'?'bn-BD':'en-US'; }
 function setFont(f){ if(f) document.documentElement.dataset.font=f; else delete document.documentElement.dataset.font;
   try{ localStorage.setItem('cb_font',f); }catch(e){}
-  document.querySelectorAll('#fontseg button').forEach(b=>b.classList.toggle('on',b.dataset.f===f)); }
+  document.querySelectorAll('#fontOpts button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  const fv=$('fontVal'); if(fv) fv.textContent=tr(f==='large'?'fontLarge':f==='xl'?'fontXL':'fontDefault'); }
+function setVlang(v){ try{ localStorage.setItem('cb_vlang',v); }catch(e){}
+  document.querySelectorAll('#vlangOpts button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  const vv2=$('vlangVal'); if(vv2) vv2.textContent=(v==='bn'?'বাংলা':v==='en'?'English':tr('voiceAuto')); }
 setFont((()=>{ try{ return localStorage.getItem('cb_font')||''; }catch(e){ return ''; } })());
 function syncSettings(){
   const who=currentUser||sessUser;
@@ -1606,15 +1664,17 @@ function syncSettings(){
   let th=''; try{ th=localStorage.getItem('cb_theme')||''; }catch(e){}
   document.querySelectorAll('.cmcard').forEach(b=>b.classList.toggle('on',b.dataset.th===th));
   let vv='auto'; try{ vv=localStorage.getItem('cb_vlang')||'auto'; }catch(e){}
-  document.querySelectorAll('#vlangseg button').forEach(b=>b.classList.toggle('on',b.dataset.v===vv));
+  setVlang(vv); setFont((()=>{ try{ return localStorage.getItem('cb_font')||''; }catch(e){ return ''; } })());
   const tg=$('haptog'); tg.classList.toggle('on',hapOn()); tg.setAttribute('aria-checked',hapOn()?'true':'false');
   $('spLogout').style.display=who?'block':'none';
 }
 $('setopen').onclick=()=>{ $('dclose').click(); syncSettings(); $('setpage').hidden=false; };
 $('setback').onclick=()=>{ $('setpage').hidden=true; };
 document.querySelectorAll('.cmcard').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); toast(tr('themeChanged')); }; });
-document.querySelectorAll('#fontseg button').forEach(b=>{ b.onclick=()=>setFont(b.dataset.f); });
-document.querySelectorAll('#vlangseg button').forEach(b=>{ b.onclick=()=>{ try{ localStorage.setItem('cb_vlang',b.dataset.v); }catch(e){} document.querySelectorAll('#vlangseg button').forEach(x=>x.classList.toggle('on',x===b)); }; });
+$('fontRow').onclick=()=>{ $('fontOpts').hidden=!$('fontOpts').hidden; };
+document.querySelectorAll('#fontOpts button').forEach(b=>{ b.onclick=()=>{ setFont(b.dataset.f); $('fontOpts').hidden=true; }; });
+$('vlangRow').onclick=()=>{ $('vlangOpts').hidden=!$('vlangOpts').hidden; };
+document.querySelectorAll('#vlangOpts button').forEach(b=>{ b.onclick=()=>{ setVlang(b.dataset.v); $('vlangOpts').hidden=true; }; });
 $('haptog').onclick=()=>{ const on=!hapOn(); try{ localStorage.setItem('cb_haptics',on?'1':'0'); }catch(e){}
   const tg=$('haptog'); tg.classList.toggle('on',on); tg.setAttribute('aria-checked',on?'true':'false');
   if(on&&navigator.vibrate){ try{ navigator.vibrate(12); }catch(e){} } };
