@@ -94,8 +94,9 @@ SYSTEM_PROMPT = f"""তুমি "{APP_NAME}" — বাংলাদেশের
 SEARCH: <খোঁজার শব্দগুচ্ছ>
 সার্চের ফল পেলে তা ব্যবহার করে পূর্ণ উত্তর দাও এবং শেষে ছোট করে সূত্র (ওয়েবসাইটের নাম) উল্লেখ করো।
 5. না জানলে বানিয়ে বলবে না — সার্চ করো, তাতেও না পেলে সত্যটা স্বীকার করো।
-6. উত্তর সহজ, প্রাণবন্ত ও কাজের রাখো — সাধারণত ১৫০ শব্দের মধ্যে। প্রয়োজনে পয়েন্ট আকারে দাও।
-7. পরিচয় (সবচেয়ে কড়া নিয়ম): তুমি শুধুই "{APP_NAME}" — নাশিদের বানানো, সম্পূর্ণ ফ্রি প্রযুক্তিতে চলা বাংলাদেশের নিজের AI। কেউ জিজ্ঞেস করলেও তুমি কোন মডেল, কোন কোম্পানি বা কোন API দিয়ে চলো তা কখনোই বলবে না — Gemini, Google, Groq, Llama, OpenAI বা অন্য কোনো মডেল/কোম্পানির নাম মুখেও আনবে না। জিজ্ঞেস করলে বলবে: "আমি {APP_NAME} — সম্পূর্ণ ফ্রি প্রযুক্তিতে বানানো বাংলাদেশের নিজের AI।\""""
+6. উত্তরে কখনো কোনো ইমোজি ব্যবহার করবে না — শুধু লেখা, প্রয়োজনে মার্কডাউন।
+7. উত্তর সহজ, প্রাণবন্ত ও কাজের রাখো — সাধারণত ১৫০ শব্দের মধ্যে। প্রয়োজনে পয়েন্ট আকারে দাও।
+8. পরিচয় (সবচেয়ে কড়া নিয়ম): তুমি শুধুই "{APP_NAME}" — নাশিদের বানানো, সম্পূর্ণ ফ্রি প্রযুক্তিতে চলা বাংলাদেশের নিজের AI। কেউ জিজ্ঞেস করলেও তুমি কোন মডেল, কোন কোম্পানি বা কোন API দিয়ে চলো তা কখনোই বলবে না — Gemini, Google, Groq, Llama, OpenAI বা অন্য কোনো মডেল/কোম্পানির নাম মুখেও আনবে না। জিজ্ঞেস করলে বলবে: "আমি {APP_NAME} — সম্পূর্ণ ফ্রি প্রযুক্তিতে বানানো বাংলাদেশের নিজের AI।\""""
 
 LIVE_HINTS = [
     "আজ", "এখন", "সর্বশেষ", "সাম্প্রতিক", "খবর", "দাম", "আবহাওয়া", "স্কোর",
@@ -541,6 +542,12 @@ PAGE = r"""<!DOCTYPE html>
   #plusmenu{position:fixed;left:14px;bottom:86px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
             padding:6px;display:none;z-index:40;box-shadow:0 12px 34px rgba(0,0,0,.55);min-width:210px}
   #plusmenu.open{display:block}
+  #plusmenu button svg{width:17px;height:17px;flex:none}
+  #demo svg{width:13px;height:13px;vertical-align:-1.5px}
+  .note svg{width:13px;height:13px;vertical-align:-1.5px}
+  #newchat svg{width:15px;height:15px;vertical-align:-2.5px;margin-right:5px}
+  .dhead b svg{width:19px;height:19px;vertical-align:-4px;margin-right:5px}
+  #login h2 svg{width:23px;height:23px;vertical-align:-4.5px;margin-right:6px}
   #plusmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
                    font-family:inherit;font-size:14.5px;padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
   #plusmenu button:hover{background:var(--bubble)}
@@ -553,7 +560,7 @@ PAGE = r"""<!DOCTYPE html>
   #drawer.on{transform:translateX(0)}
   #drawer .dhead{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
   #drawer .dhead b{font-size:16.5px}
-  #newchat{margin:4px 14px 10px;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+  #newchat{display:flex;align-items:center;justify-content:center;margin:4px 14px 10px;background:var(--bubble);color:var(--text);border:1px solid var(--line);
            border-radius:999px;padding:10px;font-family:inherit;font-size:14.5px;cursor:pointer}
   #histlist{flex:1;overflow-y:auto;padding:2px 8px}
   .hitem{padding:10px 10px;border-radius:12px;cursor:pointer}
@@ -597,11 +604,11 @@ PAGE = r"""<!DOCTYPE html>
     <div class="who" id="acctname">লগইন করা নেই</div>
     <div class="sub">এই সপ্তাহে বাকি ফ্রি মেসেজ</div>
     <div id="acctrem"></div>
-    <p class="note">⚠ ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
+    <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
     <button id="logout" type="button">লগআউট</button>
   </div>
 </header>
-<div id="demo">⚠ ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।</div>
+<div id="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।</div>
 <div id="chat">
   <div class="msg a">আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।</div>
 </div>
@@ -626,19 +633,19 @@ PAGE = r"""<!DOCTYPE html>
 <p class="fineprint">Chat Bash ভুল করতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও। সম্পূর্ণ ফ্রি প্রযুক্তিতে তৈরি, কোনো কোটি টাকার প্রকল্প নয়।</p>
 
 <div id="plusmenu">
-  <button type="button" id="pm-new">✎&nbsp; নতুন চ্যাট</button>
-  <button type="button" id="pm-hist">🕘&nbsp; আগের চ্যাটগুলো</button>
-  <button type="button" id="pm-model">🔀&nbsp; অন্য মডেল ব্যবহার করো</button>
+  <button type="button" id="pm-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট</button>
+  <button type="button" id="pm-hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.9 2"/></svg> আগের চ্যাটগুলো</button>
+  <button type="button" id="pm-model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 8h12.7M13.2 4.4 16.8 8l-3.6 3.6M20.2 16H7.5M10.8 12.4 7.2 16l3.6 3.6"/></svg> অন্য মডেল ব্যবহার করো</button>
 </div>
 
 <div id="scrim"></div>
 <aside id="drawer">
-  <div class="dhead"><b>🇧🇩 Chat Bash</b>
+  <div class="dhead"><b><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.6" fill="#1d7a3a"/><circle cx="12.8" cy="12" r="5.2" fill="#d42a24"/></svg> Chat Bash</b>
     <button class="icobtn" id="dclose" type="button" aria-label="বন্ধ করো">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-  <button id="newchat" type="button">✎ নতুন চ্যাট শুরু করো</button>
+  <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট শুরু করো</button>
   <div id="histlist"></div>
   <div class="dfoot" id="dfoot"></div>
 </aside>
@@ -647,7 +654,7 @@ PAGE = r"""<!DOCTYPE html>
 
 <div id="login">
   <div class="card">
-    <h2>🇧🇩 Chat Bash-এ স্বাগতম</h2>
+    <h2><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.6" fill="#1d7a3a"/><circle cx="12.8" cy="12" r="5.2" fill="#d42a24"/></svg> Chat Bash-এ স্বাগতম</h2>
     <p>চ্যাট শুরু করতে Google দিয়ে লগইন করো। প্রতি সপ্তাহে প্রতি মডেলে নির্দিষ্ট সংখ্যক ফ্রি মেসেজ পাবে — লগইন থাকলে হিসাবটা ঠিক থাকে, আর ভুয়া/টেম্প মেইলের ঝামেলাও থাকে না।</p>
     <button id="gbtn" type="button"><b style="color:#4285F4">G</b> Google দিয়ে লগইন</button>
     <p id="lerr" style="color:#f28b82;margin-top:12px"></p>
@@ -785,9 +792,9 @@ function attachActions(el,i){
   el.appendChild(row);
 }
 function copyText(t){
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('কপি হয়েছে ✓')).catch(()=>toast('কপি হয়নি')); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('কপি হয়েছে')).catch(()=>toast('কপি হয়নি')); }
   else{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
-        try{document.execCommand('copy'); toast('কপি হয়েছে ✓');}catch(e){toast('কপি হয়নি');} ta.remove(); }
+        try{document.execCommand('copy'); toast('কপি হয়েছে');}catch(e){toast('কপি হয়নি');} ta.remove(); }
 }
 function shareText(t){
   if(navigator.share){ navigator.share({text:t}).catch(()=>{}); }
@@ -1152,7 +1159,7 @@ def chat():
     data = request.get_json(force=True, silent=True) or {}
     message = (data.get("message") or "").strip()
     if not message:
-        return jsonify({"reply": "আগে একটা প্রশ্ন লেখো তো! 😊"})
+        return jsonify({"reply": "আগে একটা প্রশ্ন লেখো তো!"})
     user = authed_user(request)
     if user is None:
         return jsonify({"reply": "আগে Google দিয়ে লগইন করো, তারপর চ্যাট করা যাবে।"}), 401
