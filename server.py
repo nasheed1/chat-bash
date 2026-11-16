@@ -560,6 +560,18 @@ PAGE = r"""<!DOCTYPE html>
   .chip{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;
         padding:8px 14px;font-size:13.5px;cursor:pointer;font-family:inherit}
   .chip:hover{background:var(--panel)}
+  .mopt .soon{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent);
+       border:1px solid var(--accent);border-radius:999px;padding:3px 8px;opacity:.92}
+  /* ---------- soon modal ---------- */
+  #soonmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
+       display:flex;align-items:center;justify-content:center;z-index:70;padding:18px}
+  #soonmodal[hidden]{display:none}
+  .sm-card{background:linear-gradient(170deg,#521419,#3d0d11);border:1px solid #83413d;border-radius:22px;
+       padding:22px 20px;width:min(340px,88vw);box-shadow:0 24px 60px rgba(0,0,0,.6);animation:riseIn .25s ease;text-align:center}
+  .sm-t{font-size:17px;font-weight:700}
+  .sm-b{font-size:14px;line-height:1.65;margin:10px 0 16px}
+  #soonOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+       border-radius:999px;padding:11px;font-family:inherit;font-size:15px;cursor:pointer}
   /* ---------- limit card ---------- */
   #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
        padding:14px 16px;width:calc(100% - 24px);max-width:876px;margin:10px auto 0;position:relative;z-index:1}
@@ -723,6 +735,13 @@ PAGE = r"""<!DOCTYPE html>
   </div>
 </aside>
 
+<div id="soonmodal" hidden>
+  <div class="sm-card">
+    <div class="sm-t">এই মডেলটা এখনো শিখছে</div>
+    <p class="sm-b" id="soonBody"></p>
+    <button id="soonOk" type="button">বুঝেছি</button>
+  </div>
+</div>
 <div id="toast"></div>
 
 <div id="login">
@@ -763,9 +782,9 @@ let curModel='__DEFAULT_MODEL__';
 const modelMenu=$('modelMenu');
 MODELS.forEach(m=>{
   const b=document.createElement('button'); b.type='button'; b.className='mopt'; b.dataset.key=m.key;
-  b.innerHTML='<span class="mt"><span class="mn"></span><span class="md"></span></span><span class="radio"></span>';
+  b.innerHTML='<span class="mt"><span class="mn"></span><span class="md"></span></span>'+(m.soon?'<span class="soon">শীঘ্রই আসছে</span>':'<span class="radio"></span>');
   b.querySelector('.mn').textContent=m.name; b.querySelector('.md').textContent=MDESC[m.key]||'';
-  b.onclick=()=>{ setModel(m.key); modelMenu.hidden=true; };
+  b.onclick=()=>{ modelMenu.hidden=true; if(m.soon){ openSoon(m); return; } setModel(m.key); };
   modelMenu.appendChild(b);
 });
 function setModel(k){ curModel=k; const m=MODELS.find(x=>x.key===k); if(m) $('modelName').textContent=m.name;
@@ -949,10 +968,16 @@ function checkLimit(){ const card=$('limitcard'); if(!card) return;
   card.hidden=!out; if(!out) return;
   const m=MODELS.find(x=>x.key===curModel);
   $('limitSub').textContent=(m?m.name:'এই মডেল')+'-এর এই সপ্তাহের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextMonday()+' থেকে।';
-  const alt=MODELS.find(x=>x.key!==curModel&&(remaining[x.key]===undefined||remaining[x.key]>0));
+  const alt=MODELS.find(x=>x.key!==curModel&&!x.soon&&(remaining[x.key]===undefined||remaining[x.key]>0));
   const btn=$('limitBtn');
   if(alt){ btn.disabled=false; btn.textContent=alt.name+' ব্যবহার করো'; btn.onclick=()=>{ setModel(alt.key); toast('মডেল: '+alt.name); }; }
   else{ btn.disabled=true; btn.textContent='সব মডেলের লিমিট শেষ'; btn.onclick=null; } }
+function openSoon(m){
+  $('soonBody').textContent=m.name+' এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।';
+  $('soonmodal').hidden=false;
+}
+$('soonOk').onclick=()=>{ $('soonmodal').hidden=true; };
+$('soonmodal').addEventListener('click',e=>{ if(e.target.id==='soonmodal') $('soonmodal').hidden=true; });
 function renderAcct(){
   const box=$('acctrem'); box.innerHTML='';
   MODELS.forEach(m=>{ const r=remaining[m.key];
@@ -984,8 +1009,9 @@ $('newtop').onclick=()=>{ newChat(); };
 $('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); };
 $('pm-new').onclick=()=>{ closeMenus(); newChat(); };
 $('pm-hist').onclick=()=>{ closeMenus(); openDrawer(); };
-$('pm-model').onclick=()=>{ closeMenus(); const i=MODELS.findIndex(m=>m.key===curModel);
-  setModel(MODELS[(i+1)%MODELS.length].key); toast('মডেল: '+MODELS[(i+1)%MODELS.length].name); focusQ(); };
+$('pm-model').onclick=()=>{ closeMenus(); let i=MODELS.findIndex(m=>m.key===curModel);
+  for(let n=0;n<MODELS.length;n++){ i=(i+1)%MODELS.length; if(!MODELS[i].soon) break; }
+  setModel(MODELS[i].key); toast('মডেল: '+MODELS[i].name); focusQ(); };
 
 /* ---------------- chips ---------------- */
 document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ q.value=c.textContent; form.requestSubmit(); });
@@ -1129,7 +1155,9 @@ focusQ();
 
 
 def public_models():
-    return [{"key": k, "name": m["name"], "desc": m["desc"], "cap": m["cap"]}
+    return [{"key": k, "name": m["name"], "desc": m["desc"], "cap": m["cap"],
+             "soon": (m["provider"] == "groq" and not GROQ_API_KEY)
+                     or (m["provider"] == "gemini" and not GEMINI_API_KEY)}
             for k, m in MODELS.items()]
 
 
