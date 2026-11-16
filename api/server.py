@@ -816,17 +816,18 @@ if(AUTH_ON){
   $('gbtn').onclick=async()=>{
     const prov=new firebase.auth.GoogleAuthProvider();
     const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication;
-    try{
-      if(FA){
+    if(FA){
+      try{
         const r=await FA.signInWithGoogle();
         const tok=r&&r.credential&&r.credential.idToken;
         if(tok){ await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(tok)); return; }
-        throw new Error('no-token');
-      }
+      }catch(e){ console.warn('native login failed, falling back', e); }
+    }
+    try{
       if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
       else{ await firebase.auth().signInWithPopup(prov); }
     }
-    catch(e){ $('lerr').textContent='লগইন হয়নি: '+e.message; }
+    catch(e){ console.warn('login failed', e); $('lerr').textContent='লগইন হয়নি — আবার চেষ্টা করো।'; }
   };
 }else{
   renderAcct();
