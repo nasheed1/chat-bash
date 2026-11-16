@@ -32,17 +32,13 @@ jobs:
         working-directory: android-app
         run: npx cap add android
 
-      - name: Wire Firebase config + fixed signing key
+      - name: Sign every build with the fixed key (updates keep app data + login)
         working-directory: android-app
         run: |
-          cp google-services.json android/app/google-services.json
           cp chatbash-signing.p12 android/chatbash-signing.p12
           python3 - <<'PYEOF'
-          # app module: apply google-services plugin + sign every build with the fixed key
           p = 'android/app/build.gradle'
           s = open(p).read()
-          if 'google-services' not in s:
-              s += "\napply plugin: 'com.google.gms.google-services'\n"
           s += """
           android {
               signingConfigs {
@@ -61,13 +57,7 @@ jobs:
           }
           """
           open(p, 'w').write(s)
-          # root build file: make sure the google-services classpath exists
-          p2 = 'android/build.gradle'
-          s2 = open(p2).read()
-          if 'com.google.gms:google-services' not in s2:
-              s2 = s2.replace('dependencies {', "dependencies {\n        classpath 'com.google.gms:google-services:4.4.2'", 1)
-              open(p2, 'w').write(s2)
-          print('gradle patched')
+          print('signing patched')
           PYEOF
 
       - name: Generate launcher icons
