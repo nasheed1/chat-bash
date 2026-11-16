@@ -366,7 +366,9 @@ def session_touch(uid):
     return True, 0
 
 
-def remaining_map(uid):
+def remaining_map(uid, owner=False):
+    if owner:
+        return {key: None for key in MODELS}
     out = {}
     for key, m in MODELS.items():
         used = credits_used(uid, key) if uid else 0
@@ -955,6 +957,7 @@ const chat=$('chat'),form=$('f'),q=$('q'),send=$('send'),mic=$('mic'),
       loginEl=$('login'),chipsEl=$('chips'),
       drawer=$('drawer'),scrim=$('scrim'),acct=$('acct'),plusmenu=$('plusmenu');
 let currentUser=null, remaining={}, pairs=[], currentId=null;
+let isOwner=false;
 let appSess=null, sessUser=null;
 try{ const sv=JSON.parse(localStorage.getItem('cb_appsess')||'null');
   if(sv&&sv.token){ appSess=sv.token; sessUser={uid:sv.uid,email:sv.email||'',displayName:sv.name||''}; } }catch(e){}
@@ -996,7 +999,7 @@ fbUp:"Good answer",fbDown:"Bad answer",fbRegen:"Answer again",fbShare:"Share",fb
 descLite:"Light & fast — for everyday questions",descPro:"The smartest — for hard questions",descSwift:"Quick answers — for small questions",
 loginWait:"Logging in — please wait…",codeExpired:"That login code has expired — tap sign-in again.",loginIncomplete:"Login didn't complete — please try again.",browserOpening:"Opening the browser — choose your account there…",loginFailed:"Login failed — please try again.",backToApp:"Back to the Chat Bash app",
 soonBody:"{name} is still being built. It is not fully ready to talk to people properly yet. It will be ready very soon — though by \"soon\" we could mean ten or twelve years, or even two or three decades.",
-maintTitle:"Work in progress",maintBody:"Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.",infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
+unlimited:"Unlimited",maintTitle:"Work in progress",maintBody:"Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.",infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
 bn:{greeting:"আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।",
 chip1:"বাংলাদেশের জাতীয় মাছ কোনটি?",chip2:"পদ্মা সেতু সম্পর্কে বলো",chip3:"আজ ঢাকার আবহাওয়া কেমন?",chip4:"কক্সবাজার ভ্রমণের টিপস দাও",
 askPh:"Chat Bash-কে প্রশ্ন করো…",thinking:"ভাবছি",
@@ -1020,7 +1023,7 @@ fbUp:"ভালো লেগেছে",fbDown:"ভালো লাগেনি",
 descLite:"হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে",descPro:"সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে",descSwift:"ঝটপট উত্তর — ছোট প্রশ্নে",
 loginWait:"লগইন হচ্ছে — একটু অপেক্ষা করো…",codeExpired:"লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।",loginIncomplete:"লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।",browserOpening:"ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…",loginFailed:"লগইন হয়নি — আবার চেষ্টা করো।",backToApp:"Chat Bash অ্যাপে ফিরে যাও",
 soonBody:'{name} এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।',
-maintTitle:"কাজ চলতাছে",maintBody:"এই মুহূর্তে Chat Bash-এ কাজ চলতাছে, তাই আপাতত চ্যাটিং করা যাবে না। একটু পরে আবার চেষ্টা করো।",infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
+unlimited:"আনলিমিটেড",maintTitle:"কাজ চলতাছে",maintBody:"এই মুহূর্তে Chat Bash-এ কাজ চলতাছে, তাই আপাতত চ্যাটিং করা যাবে না। একটু পরে আবার চেষ্টা করো।",infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
 let curLang=(()=>{ try{ const l=localStorage.getItem('cb_lang'); return l==='bn'?'bn':'en'; }catch(e){ return 'en'; } })();
 function tr(k){ return (STR[curLang]&&STR[curLang][k])||STR.en[k]||k; }
 function locTag(){ return curLang==='bn'?'bn-BD':'en-GB'; }
@@ -1229,7 +1232,7 @@ async function regen(i,el,btn){
 function nextReset(){ const step=2*24*3600*1000; const ts=(Math.floor(Date.now()/step)+1)*step;
   return new Date(ts).toLocaleDateString(locTag(),{weekday:'long',day:'numeric',month:'long'}); }
 function checkLimit(){ const card=$('limitcard'); if(!card) return;
-  const r=remaining[curModel]; const out=(r!==undefined&&r<=0);
+  const r=remaining[curModel]; const out=(!isOwner&&r!==undefined&&r!==null&&r<=0);
   card.hidden=!out; if(!out) return;
   const m=MODELS.find(x=>x.key===curModel);
   $('limitSub').textContent=curLang==='bn'?(m?m.name:'এই মডেল')+'-এর এই পর্বের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextReset()+' থেকে।':(m?m.name:'This model')+"'s free messages for this round are over. Available again from "+nextReset()+'.';
@@ -1250,7 +1253,7 @@ function renderAcct(){
   const box=$('acctrem'); box.innerHTML='';
   MODELS.forEach(m=>{ const r=remaining[m.key];
     const line=document.createElement('div'); line.className='remline';
-    line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?(curLang==='bn'?'দুই দিনে '+m.cap+'টি':m.cap+' every 2 days'):(curLang==='bn'?'বাকি '+r+' / '+m.cap:r+' / '+m.cap+' left'))+'</span>';
+    line.innerHTML='<span>'+m.name+'</span><span>'+(isOwner?tr('unlimited'):(r===undefined?(curLang==='bn'?'দুই দিনে '+m.cap+'টি':m.cap+' every 2 days'):(curLang==='bn'?'বাকি '+r+' / '+m.cap:r+' / '+m.cap+' left')))+'</span>';
     box.appendChild(line); });
   const who=currentUser||sessUser;
   if(who){ $('acctname').textContent=who.displayName||who.email||'';
@@ -1388,7 +1391,8 @@ async function refreshMe(){
     const t=await authTok();
     const r=await fetch('/me',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({idToken:t})});
-    const d=await r.json(); if(d.remaining){ remaining=d.remaining; renderAcct(); }
+    const d=await r.json(); if(d.owner!==undefined) isOwner=!!d.owner;
+    if(d.remaining){ remaining=d.remaining; renderAcct(); }
   }catch(e){}
 }
 if(AUTH_ON){
@@ -1762,6 +1766,15 @@ def verify_session(token):
         return None
 
 
+OWNER_EMAIL = os.environ.get(
+    "OWNER_EMAIL", "nasheedulislam@gmail.com").strip().lower()
+
+
+def is_owner(user):
+    """The owner's own account is exempt from every limit."""
+    return bool(user) and (user.get("email") or "").strip().lower() == OWNER_EMAIL
+
+
 def authed_user(req):
     """Return user dict; 'DEV' user when auth disabled; None when invalid."""
     if not AUTH_REQUIRED:
@@ -1779,7 +1792,8 @@ def me():
     user = authed_user(request)
     if user is None:
         return jsonify({"error": "unauthorized"}), 401
-    return jsonify({"email": user["email"], "remaining": remaining_map(user["uid"])})
+    return jsonify({"email": user["email"], "owner": is_owner(user),
+                    "remaining": remaining_map(user["uid"], is_owner(user))})
 
 
 def login_code_create(user):
@@ -1837,6 +1851,8 @@ def enter():
     user = authed_user(request)
     if user is None:
         return jsonify({"error": "unauthorized"}), 401
+    if is_owner(user):
+        return jsonify({"ok": True, "owner": True})
     state, resume = session_state(user["uid"])
     if state == "over":
         presence_release(user["uid"])
@@ -1873,33 +1889,34 @@ def chat():
     user = authed_user(request)
     if user is None:
         return jsonify({"reply": canned(lang, "login_first")}), 401
-    allowed, resume = session_touch(user["uid"])
+    owner = is_owner(user)
+    allowed, resume = (True, 0) if owner else session_touch(user["uid"])
     if not allowed:
         presence_release(user["uid"])
         return jsonify({
             "error": "session_over",
             "reply": canned(lang, "session_over"),
             "resume": resume,
-            "remaining": remaining_map(user["uid"]),
+            "remaining": remaining_map(user["uid"], is_owner(user)),
         }), 403
     model_key = data.get("model") or DEFAULT_MODEL
     if model_key not in MODELS:
         model_key = DEFAULT_MODEL
-    if CREDITS_ON:
+    if CREDITS_ON and not owner:
         used = credits_used(user["uid"], model_key)
         if used >= MODELS[model_key]["cap"]:
             return jsonify({
                 "reply": canned(lang, "limit", name=MODELS[model_key]['name']),
-                "remaining": remaining_map(user["uid"]),
+                "remaining": remaining_map(user["uid"], is_owner(user)),
             }), 429
     try:
         reply = respond(message, data.get("history") or [], model_key)
     except Exception as e:  # noqa: BLE001 — details stay in the server log only
         print("LLM error:", e, flush=True)
-        return jsonify({"reply": canned(lang, "generic"), "remaining": remaining_map(user["uid"])})
-    if CREDITS_ON:
+        return jsonify({"reply": canned(lang, "generic"), "remaining": remaining_map(user["uid"], is_owner(user))})
+    if CREDITS_ON and not owner:
         credits_consume(user["uid"], model_key)
-    return jsonify({"reply": reply, "remaining": remaining_map(user["uid"])})
+    return jsonify({"reply": reply, "remaining": remaining_map(user["uid"], is_owner(user))})
 
 
 if __name__ == "__main__":
