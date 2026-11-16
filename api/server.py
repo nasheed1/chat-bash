@@ -904,12 +904,18 @@ function wireAppLinks(){
   if(!window.Capacitor||!Capacitor.Plugins||!Capacitor.Plugins.App) return;
   const handleUrl=async e=>{
     const url=(e&&e.url)||''; const m=url.match(/code=([A-Za-z0-9]+)/); if(!m) return;
+    const le=document.getElementById('lerr');
+    if(le){ le.style.color='#e2b3a9'; le.textContent='লগইন হচ্ছে — একটু অপেক্ষা করো…'; }
     try{
       const r=await fetch('/auth/exchange',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({code:m[1]})});
       const d=await r.json();
-      if(d&&d.idToken){ await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken)); }
-    }catch(err){ console.warn('handoff failed',err); }
+      if(d&&d.idToken){
+        await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken));
+        if(le) le.textContent='';
+      }else if(le){ le.style.color='#f28b82'; le.textContent='লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।'; }
+    }catch(err){ console.warn('handoff failed',err);
+      if(le){ le.style.color='#f28b82'; le.textContent='লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।'; } }
   };
   Capacitor.Plugins.App.addListener('appUrlOpen',handleUrl);
   Capacitor.Plugins.App.getLaunchUrl().then(u=>{ if(u&&u.url) handleUrl(u); }).catch(()=>{});
@@ -945,7 +951,14 @@ if(AUTH_ON){
       }catch(e){ console.warn('native login failed, falling back', e); }
     }
     if(window.Capacitor){
-      try{ const w=window.open('https://chat-bash.vercel.app/?applogin=1','_system'); if(w){ return; } }catch(e){}
+      const purl='https://chat-bash.vercel.app/?applogin=1';
+      try{
+        if(window.Capacitor.Plugins&&Capacitor.Plugins.Browser){
+          lerr.style.color='#e2b3a9'; lerr.textContent='ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…';
+          await Capacitor.Plugins.Browser.open({url:purl}); return;
+        }
+      }catch(e){ console.warn('browser open failed',e); }
+      try{ const w=window.open(purl,'_system'); if(w){ return; } }catch(e){}
     }
     try{
       if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
