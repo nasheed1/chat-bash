@@ -480,6 +480,13 @@ PAGE = r"""<!DOCTYPE html>
   .icobtn:hover{background:var(--bubble)}
   .icobtn svg{width:22px;height:22px}
   /* ---------- top bar ---------- */
+  /* ---------- touch polish: no tap flash, no stray text selection ---------- */
+  *{-webkit-tap-highlight-color:transparent}
+  button{outline:none}
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  img{-webkit-user-drag:none}
+  #chat,#chat .msg{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+  input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
   .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
   #modelBtn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text);
