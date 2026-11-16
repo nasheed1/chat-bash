@@ -639,6 +639,54 @@ PAGE = r"""<!DOCTYPE html>
   .icobtn{transition:transform .12s ease}
   .icobtn:active{transform:scale(.88)}
   @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important} }
+  html[data-font="large"] .msg{font-size:1.13em}
+  html[data-font="xl"] .msg{font-size:1.26em}
+  .setrow{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;border-top:1px solid var(--line);
+          color:var(--text);font:inherit;font-size:14.5px;padding:13px 16px;cursor:pointer;text-align:left}
+  .setrow svg{width:20px;height:20px;flex:none}
+  .setrow .chev{margin-left:auto;width:16px;height:16px;color:var(--muted)}
+  #setpage{position:fixed;inset:0;z-index:55;background:linear-gradient(168deg,var(--panel),var(--bg) 72%);overflow-y:auto}
+  #setpage[hidden]{display:none}
+  .sp-head{position:sticky;top:0;display:flex;align-items:center;gap:6px;padding:10px 12px;z-index:2;background:linear-gradient(168deg,var(--panel),var(--panel))}
+  .sp-title{font-size:19px;font-weight:700}
+  .sp-body{max-width:560px;margin:0 auto;padding:6px 16px 34px;display:flex;flex-direction:column;gap:14px}
+  .sp-card{display:flex;align-items:center;gap:12px;background:var(--menu);border:1px solid var(--line);border-radius:18px;padding:14px}
+  .sp-card .avatar{width:44px;height:44px;font-size:19px;flex:none}
+  .sp-badge{margin-left:auto;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700;
+            border-radius:999px;padding:4px 10px;line-height:1.3;flex:none}
+  .sp-plan{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .sp-sec{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 2px -6px}
+  .sp-group{background:var(--menu);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:12px}
+  .sp-rowlbl{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .sp-rowlbl svg{width:20px;height:20px;flex:none;color:var(--accent)}
+  .sp-row{display:flex;align-items:center;gap:10px}
+  .sp-rl{display:flex;align-items:center;gap:10px;flex:1;font-size:15px;font-weight:600;min-width:0}
+  .sp-rl svg{width:20px;height:20px;flex:none;color:var(--accent)}
+  .sp-sub{font-size:12.5px;color:var(--muted);font-weight:400;margin-top:1px}
+  .sp-div{height:1px;background:var(--line)}
+  .cmrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .cmcard{background:none;border:none;color:var(--text);font:inherit;font-size:12px;display:flex;flex-direction:column;gap:6px;align-items:center;cursor:pointer;padding:0}
+  .cmprev{width:100%;height:44px;border-radius:12px;border:2px solid var(--line);display:block}
+  .cmcard.on .cmprev{border-color:var(--accent)}
+  .cmcard.on{color:var(--accent);font-weight:700}
+  .segrow{display:flex;gap:8px}
+  .segrow button{flex:1;background:var(--bubble);color:var(--text);border:1px solid var(--line);border-radius:999px;
+                 padding:8px 4px;font:inherit;font-size:13.5px;cursor:pointer;line-height:1.3}
+  .segrow button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+  .switch{width:48px;height:28px;border-radius:999px;background:var(--bubble);border:1px solid var(--line);position:relative;cursor:pointer;flex:none;padding:0}
+  .switch span{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--text);transition:left .18s ease}
+  .switch.on{background:var(--accent);border-color:var(--accent)}
+  .switch.on span{left:22px;background:var(--accent-ink)}
+  .sp-link{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font:inherit;
+           font-size:15px;padding:2px 0;cursor:pointer;text-align:left}
+  .sp-link svg{width:20px;height:20px;flex:none;color:var(--accent)}
+  .sp-link .chev{margin-left:auto;width:16px;height:16px;color:var(--muted)}
+  .sp-link.danger{color:#ff9d8a}.sp-link.danger svg{color:#ff9d8a}
+  #spLogout{background:var(--menu);border:1px solid var(--line);border-radius:16px;color:#ff9d8a;font:inherit;
+            font-size:15px;font-weight:600;padding:13px;cursor:pointer}
+  .sp-ver{text-align:center;color:var(--muted);font-size:12.5px}
+  #delmodal #delNo{background:none;border:1px solid var(--line);color:var(--text);margin-top:8px}
+  #delmodal #delYes{background:#a02c22;color:#fdf3e7}
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
   .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
   #modelBtn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text);
@@ -699,9 +747,9 @@ PAGE = r"""<!DOCTYPE html>
   .mopt .soon{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent);
        border:1px solid var(--accent);border-radius:999px;padding:3px 8px;opacity:.92}
   /* ---------- soon modal ---------- */
-  #soonmodal,#fullmodal,#breakmodal,#infomodal,#maintmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
+  #soonmodal,#fullmodal,#breakmodal,#infomodal,#maintmodal,#delmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
        display:flex;align-items:center;justify-content:center;z-index:70;padding:18px}
-  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden],#infomodal[hidden],#maintmodal[hidden]{display:none}
+  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden],#infomodal[hidden],#maintmodal[hidden],#delmodal[hidden]{display:none}
   .sm-card{background:linear-gradient(170deg,#521419,#3d0d11);border:1px solid #83413d;border-radius:22px;
        padding:22px 20px;width:min(340px,88vw);box-shadow:0 24px 60px rgba(0,0,0,.6);animation:riseIn .25s ease;text-align:center}
   .sm-ic{width:52px;height:52px;margin:0 auto 10px;border-radius:50%;background:rgba(238,189,85,.14);
@@ -709,7 +757,7 @@ PAGE = r"""<!DOCTYPE html>
   .sm-ic svg{width:26px;height:26px}
   .sm-t{font-size:17px;font-weight:700}
   .sm-b{font-size:14px;line-height:1.65;margin:10px 0 16px}
-  #soonOk,#fullRetry,#breakOk,#infoOk,#maintRetry{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+  #soonOk,#fullRetry,#breakOk,#infoOk,#maintRetry,#delYes,#delNo{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
        border-radius:999px;padding:10px 11px 12px;font-family:inherit;font-size:15px;cursor:pointer;line-height:1.3;display:flex;align-items:center;justify-content:center}
   /* ---------- limit card ---------- */
   #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
@@ -864,6 +912,7 @@ PAGE = r"""<!DOCTYPE html>
   <button type="button" data-th=""><span class="sw" style="background:linear-gradient(135deg,#7a2027,#38070d)"></span><span data-i18n="thRed">Red Bamboo</span><span class="tk"></span></button>
   <button type="button" data-th="cream"><span class="sw" style="background:linear-gradient(135deg,#f7f2e7 55%,#9e3a2e)"></span><span data-i18n="thCream">Cream</span><span class="tk"></span></button>
   <button type="button" data-th="green"><span class="sw" style="background:linear-gradient(135deg,#12573c 55%,#d42a24)"></span><span data-i18n="thGreen">Flag Green</span><span class="tk"></span></button>
+  <button type="button" data-th="system"><span class="sw" style="background:linear-gradient(135deg,#f7f2e7 50%,#38070d 50%)"></span><span data-i18n="thSystem">System</span><span class="tk"></span></button>
 </div>
 
 <div id="langmenu">
@@ -881,6 +930,7 @@ PAGE = r"""<!DOCTYPE html>
   <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> <span data-i18n="newChatBtn">Start a new chat</span></button>
   <div class="dsec" data-i18n="recent">Recent chats</div>
   <div id="histlist"></div>
+  <button id="setopen" class="setrow" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/><circle cx="9" cy="7" r="2.1" fill="var(--menu)"/><circle cx="15" cy="12" r="2.1" fill="var(--menu)"/><circle cx="8" cy="17" r="2.1" fill="var(--menu)"/></svg> <span data-i18n="settings">Settings</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></svg></button>
   <div class="dfoot" id="dfoot" hidden>
     <div class="avatar" id="davatar">C</div>
     <div class="pmeta"><div class="pname" id="dname"></div><div class="pmail" id="dmail"></div></div>
@@ -930,6 +980,71 @@ PAGE = r"""<!DOCTYPE html>
     <div class="sm-t" style="margin-top:10px" data-i18n="maintTitle">Work in progress</div>
     <p class="sm-b" data-i18n="maintBody">Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.</p>
     <button id="maintRetry" type="button" data-i18n="tryAgain">Try again</button>
+  </div>
+</div>
+<div id="setpage" hidden>
+  <div class="sp-head">
+    <button class="icobtn" id="setback" type="button" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5.5L8.5 12 15 18.5"/></svg></button>
+    <div class="sp-title" data-i18n="settings">Settings</div>
+  </div>
+  <div class="sp-body">
+    <div class="sp-card">
+      <div class="avatar" id="spAvatar">C</div>
+      <div class="pmeta"><div class="pname" id="spName"></div><div class="pmail" id="spMail"></div><div class="sp-plan" id="spPlan"></div></div>
+      <span class="sp-badge" id="spBadge">Free</span>
+    </div>
+    <div class="sp-sec" data-i18n="appearance">Appearance</div>
+    <div class="sp-group">
+      <div class="sp-rowlbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.9-.9 1.9-1.9 0-.8-.5-1.3-.5-2.1 0-1 .8-1.7 1.9-1.7H17a4.5 4.5 0 004.5-4.5C21.5 6.4 17.2 3.5 12 3.5z"/><circle cx="7.6" cy="10.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.4" cy="6.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg><span data-i18n="colorMode">Color mode</span></div>
+      <div class="cmrow">
+        <button class="cmcard" data-th="" type="button"><span class="cmprev" style="background:linear-gradient(160deg,#7a2027,#38070d)"></span><span data-i18n="thRed">Red Bamboo</span></button>
+        <button class="cmcard" data-th="cream" type="button"><span class="cmprev" style="background:linear-gradient(160deg,#fffdf8,#f3e9d7)"></span><span data-i18n="thCream">Cream</span></button>
+        <button class="cmcard" data-th="green" type="button"><span class="cmprev" style="background:linear-gradient(160deg,#12573c,#07271b)"></span><span data-i18n="thGreen">Flag Green</span></button>
+        <button class="cmcard" data-th="system" type="button"><span class="cmprev" style="background:linear-gradient(115deg,#f7f2e7 50%,#38070d 50%)"></span><span data-i18n="thSystem">System</span></button>
+      </div>
+      <div class="sp-div"></div>
+      <div class="sp-rowlbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6.2V4.2h14v2M12 4.2V20M9.2 20h5.6"/></svg><span data-i18n="fontStyle">Font style</span></div>
+      <div class="segrow" id="fontseg">
+        <button type="button" data-f="" data-i18n="fontDefault">Default</button>
+        <button type="button" data-f="large" data-i18n="fontLarge">Large</button>
+        <button type="button" data-f="xl" data-i18n="fontXL">Extra large</button>
+      </div>
+    </div>
+    <div class="sp-sec" data-i18n="chatSec">Chat</div>
+    <div class="sp-group">
+      <div class="sp-row">
+        <div class="sp-rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.8" width="6" height="18.4" rx="2"/><path d="M4.6 9.6a4.2 4.2 0 000 4.8M19.4 9.6a4.2 4.2 0 010 4.8"/></svg><div><div data-i18n="haptics">Haptic feedback</div><div class="sp-sub" data-i18n="hapticsSub">Light vibration while answers type</div></div></div>
+        <button class="switch" id="haptog" type="button" role="switch" aria-checked="true"><span></span></button>
+      </div>
+      <div class="sp-div"></div>
+      <div class="sp-rowlbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.8" width="6" height="11" rx="3"/><path d="M5.6 11.4a6.4 6.4 0 0012.8 0M12 17.8V21"/></svg><span data-i18n="voiceDict">Voice dictation</span></div>
+      <div class="segrow" id="vlangseg">
+        <button type="button" data-v="auto" data-i18n="voiceAuto">Auto</button>
+        <button type="button" data-v="bn">বাংলা</button>
+        <button type="button" data-v="en">English</button>
+      </div>
+    </div>
+    <div class="sp-sec" data-i18n="privacySec">Privacy</div>
+    <div class="sp-group">
+      <button class="sp-link" id="spPriv" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.6v5.2c0 4.6-3 7.7-7 9.2-4-1.5-7-4.6-7-9.2V5.6z"/><path d="M9.2 11.6l2 2 3.6-3.8"/></svg><span data-i18n="privacyPolicy">Privacy policy</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></svg></button>
+      <button class="sp-link" id="spTerms" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v13.5H7z"/><path d="M14 3v4h4M9.6 12h4.8M9.6 15.4h4.8"/></svg><span data-i18n="termsTxt">Terms of use</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></svg></button>
+      <button class="sp-link danger" id="spDel" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M9.5 6V4h5v2M6.5 6.5l1 13h9l1-13M10 10.5v6M14 10.5v6"/></svg><span data-i18n="deleteHistory">Delete my chat history</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></svg></button>
+    </div>
+    <div class="sp-sec" data-i18n="aboutSec">About</div>
+    <div class="sp-group">
+      <button class="sp-link" id="spShare" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.6"/><circle cx="17.5" cy="5.5" r="2.6"/><circle cx="17.5" cy="18.5" r="2.6"/><path d="M8.3 10.8l6.9-4M8.3 13.2l6.9 4"/></svg><span data-i18n="shareApp">Share Chat Bash</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></svg></button>
+      <button class="sp-link" id="spAbout" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.2"/><circle cx="12" cy="7.9" r="1.25" fill="currentColor" stroke="none"/></svg><span data-i18n="aboutApp">About Chat Bash</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></svg></button>
+    </div>
+    <button id="spLogout" type="button" data-i18n="logout">Log out</button>
+    <p class="sp-ver">Chat Bash — <span data-i18n="freeNote">free forever</span></p>
+  </div>
+</div>
+<div id="delmodal" hidden>
+  <div class="sm-card">
+    <div class="sm-t" data-i18n="delTitle">Delete history?</div>
+    <p class="sm-b" data-i18n="delBody">All your chats will be deleted from this device and your account. This cannot be undone.</p>
+    <button id="delYes" type="button" data-i18n="delYes">Delete</button>
+    <button id="delNo" type="button" data-i18n="cancelTxt">Cancel</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -999,7 +1114,7 @@ fbUp:"Good answer",fbDown:"Bad answer",fbRegen:"Answer again",fbShare:"Share",fb
 descLite:"Light & fast — for everyday questions",descPro:"The smartest — for hard questions",descSwift:"Quick answers — for small questions",
 loginWait:"Logging in — please wait…",codeExpired:"That login code has expired — tap sign-in again.",loginIncomplete:"Login didn't complete — please try again.",browserOpening:"Opening the browser — choose your account there…",loginFailed:"Login failed — please try again.",backToApp:"Back to the Chat Bash app",
 soonBody:"{name} is still being built. It is not fully ready to talk to people properly yet. It will be ready very soon — though by \"soon\" we could mean ten or twelve years, or even two or three decades.",
-unlimited:"Unlimited",maintTitle:"Work in progress",maintBody:"Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.",infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
+unlimited:"Unlimited",settings:"Settings",appearance:"Appearance",colorMode:"Color mode",thSystem:"System",fontStyle:"Font style",fontDefault:"Default",fontLarge:"Large",fontXL:"Extra large",chatSec:"Chat",haptics:"Haptic feedback",hapticsSub:"Light vibration while answers type",voiceDict:"Voice dictation",voiceAuto:"Auto",privacySec:"Privacy",privacyPolicy:"Privacy policy",termsTxt:"Terms of use",deleteHistory:"Delete my chat history",delTitle:"Delete history?",delBody:"All your chats will be deleted from this device and your account. This cannot be undone.",delYes:"Delete",cancelTxt:"Cancel",deleted:"Chat history deleted",aboutSec:"About",shareApp:"Share Chat Bash",aboutApp:"About Chat Bash",freeBadge:"Free",ownerBadge:"Owner",planFree:"Free plan — limits reset every 2 days",planOwner:"Owner account — no limits",freeNote:"free forever",maintTitle:"Work in progress",maintBody:"Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.",infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
 bn:{greeting:"আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।",
 chip1:"বাংলাদেশের জাতীয় মাছ কোনটি?",chip2:"পদ্মা সেতু সম্পর্কে বলো",chip3:"আজ ঢাকার আবহাওয়া কেমন?",chip4:"কক্সবাজার ভ্রমণের টিপস দাও",
 askPh:"Chat Bash-কে প্রশ্ন করো…",thinking:"ভাবছি",
@@ -1023,7 +1138,7 @@ fbUp:"ভালো লেগেছে",fbDown:"ভালো লাগেনি",
 descLite:"হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে",descPro:"সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে",descSwift:"ঝটপট উত্তর — ছোট প্রশ্নে",
 loginWait:"লগইন হচ্ছে — একটু অপেক্ষা করো…",codeExpired:"লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।",loginIncomplete:"লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।",browserOpening:"ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…",loginFailed:"লগইন হয়নি — আবার চেষ্টা করো।",backToApp:"Chat Bash অ্যাপে ফিরে যাও",
 soonBody:'{name} এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।',
-unlimited:"আনলিমিটেড",maintTitle:"কাজ চলতাছে",maintBody:"এই মুহূর্তে Chat Bash-এ কাজ চলতাছে, তাই আপাতত চ্যাটিং করা যাবে না। একটু পরে আবার চেষ্টা করো।",infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
+unlimited:"আনলিমিটেড",settings:"সেটিংস",appearance:"চেহারা",colorMode:"রঙের মোড",thSystem:"সিস্টেম",fontStyle:"হরফের স্টাইল",fontDefault:"ডিফল্ট",fontLarge:"বড়",fontXL:"আরও বড়",chatSec:"চ্যাট",haptics:"হ্যাপটিক ফিডব্যাক",hapticsSub:"উত্তর টাইপ হওয়ার সময় হালকা ভাইব্রেশন",voiceDict:"ভয়েস ডিক্টেশন",voiceAuto:"অটো",privacySec:"গোপনীয়তা",privacyPolicy:"প্রাইভেসি নীতি",termsTxt:"ব্যবহারের শর্ত",deleteHistory:"আমার চ্যাট হিস্ট্রি মুছো",delTitle:"হিস্ট্রি মুছবে?",delBody:"তোমার সব চ্যাট এই ডিভাইস আর অ্যাকাউন্ট থেকে মুছে যাবে। এটা ফেরানো যাবে না।",delYes:"মুছে ফেলো",cancelTxt:"বাতিল",deleted:"চ্যাট হিস্ট্রি মুছে ফেলা হয়েছে",aboutSec:"সম্পর্কে",shareApp:"Chat Bash শেয়ার করো",aboutApp:"Chat Bash সম্পর্কে",freeBadge:"ফ্রি",ownerBadge:"ওনার",planFree:"ফ্রি প্ল্যান — প্রতি ২ দিনে লিমিট রিসেট হয়",planOwner:"ওনার অ্যাকাউন্ট — কোনো লিমিট নেই",freeNote:"সবসময় ফ্রি",maintTitle:"কাজ চলতাছে",maintBody:"এই মুহূর্তে Chat Bash-এ কাজ চলতাছে, তাই আপাতত চ্যাটিং করা যাবে না। একটু পরে আবার চেষ্টা করো।",infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
 let curLang=(()=>{ try{ const l=localStorage.getItem('cb_lang'); return l==='bn'?'bn':'en'; }catch(e){ return 'en'; } })();
 function tr(k){ return (STR[curLang]&&STR[curLang][k])||STR.en[k]||k; }
 function locTag(){ return curLang==='bn'?'bn-BD':'en-GB'; }
@@ -1159,7 +1274,7 @@ function typeReply(el, full, done){
     i+=step;
     x.textContent=units.slice(0,i).join('');
     chat.scrollTop=chat.scrollHeight;
-    if(i<units.length && ++vt%6===0 && navigator.vibrate){ try{ navigator.vibrate(7); }catch(e){} }
+    if(i<units.length && ++vt%6===0 && navigator.vibrate && hapOn()){ try{ navigator.vibrate(7); }catch(e){} }
     if(i>=units.length){ clearInterval(iv); setRich(el, full); chat.scrollTop=chat.scrollHeight; if(done) done(); }
   }, 20);
 }
@@ -1266,10 +1381,15 @@ function renderAcct(){
 }
 function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); $('langmenu').classList.remove('open'); }
 const THEME_BG={'':'#38070d','cream':'#f7f2e7','green':'#07271b'};
-function setTheme(t){ if(t) document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme;
+function resolveTheme(t){ if(t==='system') return (window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'':'cream'; return t; }
+function setTheme(t){ const r=resolveTheme(t); if(r) document.documentElement.dataset.theme=r; else delete document.documentElement.dataset.theme;
   try{ localStorage.setItem('cb_theme',t); }catch(e){}
-  const mc=document.querySelector('meta[name="theme-color"]'); if(mc) mc.content=THEME_BG[t]||'#38070d';
-  document.querySelectorAll('#thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.th===t)); }
+  const mc=document.querySelector('meta[name="theme-color"]'); if(mc) mc.content=THEME_BG[r]||'#38070d';
+  document.querySelectorAll('#thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.th===t));
+  document.querySelectorAll('.cmcard').forEach(b=>b.classList.toggle('on',b.dataset.th===t)); }
+if(window.matchMedia){ const mq=matchMedia('(prefers-color-scheme: dark)');
+  const onchg=()=>{ try{ if(localStorage.getItem('cb_theme')==='system') setTheme('system'); }catch(e){} };
+  if(mq.addEventListener) mq.addEventListener('change',onchg); }
 setTheme((()=>{ try{ return localStorage.getItem('cb_theme')||''; }catch(e){ return ''; } })());
 $('thembtn').onclick=e=>{ e.stopPropagation(); const m=$('thememenu'); m.classList.toggle('open'); plusmenu.classList.remove('open'); acct.classList.remove('open'); $('langmenu').classList.remove('open'); };
 document.querySelectorAll('#thememenu button').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); $('thememenu').classList.remove('open'); toast(tr('themeChanged')); }; });
@@ -1307,7 +1427,7 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 mic.onclick=()=>{
   if(!SR){ toast(tr('noVoice')); return; }
   try{
-    const r=new SR(); r.lang=curLang==='bn'?'bn-BD':'en-US'; r.interimResults=false;
+    const r=new SR(); r.lang=dictLang(); r.interimResults=false;
     mic.classList.add('rec');
     r.onresult=e=>{ q.value=e.results[0][0].transcript; syncSend(); };
     r.onend=()=>mic.classList.remove('rec');
@@ -1468,6 +1588,50 @@ document.addEventListener('visibilitychange',async()=>{
   else if(!ok) maintWatch();
 });
 maintWatch();
+
+/* ---------------- settings page ---------------- */
+function hapOn(){ try{ return localStorage.getItem('cb_haptics')!=='0'; }catch(e){ return true; } }
+function dictLang(){ try{ const v=localStorage.getItem('cb_vlang'); if(v==='bn') return 'bn-BD'; if(v==='en') return 'en-US'; }catch(e){} return curLang==='bn'?'bn-BD':'en-US'; }
+function setFont(f){ if(f) document.documentElement.dataset.font=f; else delete document.documentElement.dataset.font;
+  try{ localStorage.setItem('cb_font',f); }catch(e){}
+  document.querySelectorAll('#fontseg button').forEach(b=>b.classList.toggle('on',b.dataset.f===f)); }
+setFont((()=>{ try{ return localStorage.getItem('cb_font')||''; }catch(e){ return ''; } })());
+function syncSettings(){
+  const who=currentUser||sessUser;
+  if(who){ const nm=who.displayName||who.email||''; $('spName').textContent=nm; $('spMail').textContent=who.email||'';
+    $('spAvatar').textContent=(nm.trim().charAt(0)||'C').toUpperCase(); }
+  else{ $('spName').textContent=tr('notSignedIn'); $('spMail').textContent=''; $('spAvatar').textContent='C'; }
+  $('spBadge').textContent=isOwner?tr('ownerBadge'):tr('freeBadge');
+  $('spPlan').textContent=isOwner?tr('planOwner'):tr('planFree');
+  let th=''; try{ th=localStorage.getItem('cb_theme')||''; }catch(e){}
+  document.querySelectorAll('.cmcard').forEach(b=>b.classList.toggle('on',b.dataset.th===th));
+  let vv='auto'; try{ vv=localStorage.getItem('cb_vlang')||'auto'; }catch(e){}
+  document.querySelectorAll('#vlangseg button').forEach(b=>b.classList.toggle('on',b.dataset.v===vv));
+  const tg=$('haptog'); tg.classList.toggle('on',hapOn()); tg.setAttribute('aria-checked',hapOn()?'true':'false');
+  $('spLogout').style.display=who?'block':'none';
+}
+$('setopen').onclick=()=>{ $('dclose').click(); syncSettings(); $('setpage').hidden=false; };
+$('setback').onclick=()=>{ $('setpage').hidden=true; };
+document.querySelectorAll('.cmcard').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); toast(tr('themeChanged')); }; });
+document.querySelectorAll('#fontseg button').forEach(b=>{ b.onclick=()=>setFont(b.dataset.f); });
+document.querySelectorAll('#vlangseg button').forEach(b=>{ b.onclick=()=>{ try{ localStorage.setItem('cb_vlang',b.dataset.v); }catch(e){} document.querySelectorAll('#vlangseg button').forEach(x=>x.classList.toggle('on',x===b)); }; });
+$('haptog').onclick=()=>{ const on=!hapOn(); try{ localStorage.setItem('cb_haptics',on?'1':'0'); }catch(e){}
+  const tg=$('haptog'); tg.classList.toggle('on',on); tg.setAttribute('aria-checked',on?'true':'false');
+  if(on&&navigator.vibrate){ try{ navigator.vibrate(12); }catch(e){} } };
+$('spPriv').onclick=()=>{ location.href='/privacy'; };
+$('spTerms').onclick=()=>{ location.href='/terms'; };
+$('spDel').onclick=()=>{ $('delmodal').hidden=false; };
+$('delNo').onclick=()=>{ $('delmodal').hidden=true; };
+$('delmodal').addEventListener('click',e=>{ if(e.target.id==='delmodal') $('delmodal').hidden=true; });
+$('delYes').onclick=async()=>{ $('delmodal').hidden=true;
+  try{ const t=await authTok(); await fetch('/history/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:t})}); }catch(e){}
+  try{ localStorage.removeItem('cb_chats'); }catch(e){}
+  pairs=[]; currentId=null; renderHist(); toast(tr('deleted')); };
+$('spShare').onclick=async()=>{ const url='https://chat-bash.vercel.app/';
+  if(navigator.share){ try{ await navigator.share({title:'Chat Bash',url}); return; }catch(e){} }
+  try{ await navigator.clipboard.writeText(url); toast(tr('copied')); }catch(e){} };
+$('spAbout').onclick=()=>{ $('infomodal').hidden=false; };
+$('spLogout').onclick=()=>{ $('setpage').hidden=true; $('logout').click(); };
 
 /* ---------------- submit ---------------- */
 form.onsubmit=async e=>{
@@ -1877,6 +2041,20 @@ def history_save_route():
         return jsonify({"error": "unauthorized"}), 401
     data = request.get_json(force=True, silent=True) or {}
     return jsonify({"ok": history_save(user["uid"], data.get("chats") or [])})
+
+
+@app.post("/history/delete")
+def history_delete_route():
+    user = authed_user(request)
+    if user is None:
+        return jsonify({"error": "unauthorized"}), 401
+    if HISTORY_ON:
+        try:
+            _redis("DEL", f"cbhist:{user['uid']}")
+        except Exception as e:  # noqa: BLE001
+            print("history delete failed:", e, flush=True)
+            return jsonify({"ok": False}), 500
+    return jsonify({"ok": True})
 
 
 @app.post("/chat")
