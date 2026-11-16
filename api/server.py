@@ -697,9 +697,9 @@ PAGE = r"""<!DOCTYPE html>
   .mopt .soon{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent);
        border:1px solid var(--accent);border-radius:999px;padding:3px 8px;opacity:.92}
   /* ---------- soon modal ---------- */
-  #soonmodal,#fullmodal,#breakmodal,#infomodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
+  #soonmodal,#fullmodal,#breakmodal,#infomodal,#maintmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
        display:flex;align-items:center;justify-content:center;z-index:70;padding:18px}
-  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden],#infomodal[hidden]{display:none}
+  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden],#infomodal[hidden],#maintmodal[hidden]{display:none}
   .sm-card{background:linear-gradient(170deg,#521419,#3d0d11);border:1px solid #83413d;border-radius:22px;
        padding:22px 20px;width:min(340px,88vw);box-shadow:0 24px 60px rgba(0,0,0,.6);animation:riseIn .25s ease;text-align:center}
   .sm-ic{width:52px;height:52px;margin:0 auto 10px;border-radius:50%;background:rgba(238,189,85,.14);
@@ -707,7 +707,7 @@ PAGE = r"""<!DOCTYPE html>
   .sm-ic svg{width:26px;height:26px}
   .sm-t{font-size:17px;font-weight:700}
   .sm-b{font-size:14px;line-height:1.65;margin:10px 0 16px}
-  #soonOk,#fullRetry,#breakOk,#infoOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+  #soonOk,#fullRetry,#breakOk,#infoOk,#maintRetry{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
        border-radius:999px;padding:10px 11px 12px;font-family:inherit;font-size:15px;cursor:pointer;line-height:1.3;display:flex;align-items:center;justify-content:center}
   /* ---------- limit card ---------- */
   #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
@@ -922,6 +922,14 @@ PAGE = r"""<!DOCTYPE html>
     <button id="infoOk" type="button" data-i18n="gotIt">Got it</button>
   </div>
 </div>
+<div id="maintmodal" hidden>
+  <div class="sm-card">
+    <img src="/icon-192.png" alt="" style="width:54px;height:54px;border-radius:15px">
+    <div class="sm-t" style="margin-top:10px" data-i18n="maintTitle">Work in progress</div>
+    <p class="sm-b" data-i18n="maintBody">Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.</p>
+    <button id="maintRetry" type="button" data-i18n="tryAgain">Try again</button>
+  </div>
+</div>
 <div id="toast"></div>
 
 <div id="login">
@@ -988,7 +996,7 @@ fbUp:"Good answer",fbDown:"Bad answer",fbRegen:"Answer again",fbShare:"Share",fb
 descLite:"Light & fast — for everyday questions",descPro:"The smartest — for hard questions",descSwift:"Quick answers — for small questions",
 loginWait:"Logging in — please wait…",codeExpired:"That login code has expired — tap sign-in again.",loginIncomplete:"Login didn't complete — please try again.",browserOpening:"Opening the browser — choose your account there…",loginFailed:"Login failed — please try again.",backToApp:"Back to the Chat Bash app",
 soonBody:"{name} is still being built. It is not fully ready to talk to people properly yet. It will be ready very soon — though by \"soon\" we could mean ten or twelve years, or even two or three decades.",
-infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
+maintTitle:"Work in progress",maintBody:"Chat Bash is being worked on right now, so chatting isn't available for the moment. Please try again in a little while.",infoTitle:"Demo mode",infoBody:"This app is still being built. Answers may sometimes be wrong or a little slow — please double-check important information.",ariaInfo:"About this app",ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
 bn:{greeting:"আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।",
 chip1:"বাংলাদেশের জাতীয় মাছ কোনটি?",chip2:"পদ্মা সেতু সম্পর্কে বলো",chip3:"আজ ঢাকার আবহাওয়া কেমন?",chip4:"কক্সবাজার ভ্রমণের টিপস দাও",
 askPh:"Chat Bash-কে প্রশ্ন করো…",thinking:"ভাবছি",
@@ -1012,7 +1020,7 @@ fbUp:"ভালো লেগেছে",fbDown:"ভালো লাগেনি",
 descLite:"হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে",descPro:"সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে",descSwift:"ঝটপট উত্তর — ছোট প্রশ্নে",
 loginWait:"লগইন হচ্ছে — একটু অপেক্ষা করো…",codeExpired:"লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।",loginIncomplete:"লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।",browserOpening:"ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…",loginFailed:"লগইন হয়নি — আবার চেষ্টা করো।",backToApp:"Chat Bash অ্যাপে ফিরে যাও",
 soonBody:'{name} এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।',
-infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
+maintTitle:"কাজ চলতাছে",maintBody:"এই মুহূর্তে Chat Bash-এ কাজ চলতাছে, তাই আপাতত চ্যাটিং করা যাবে না। একটু পরে আবার চেষ্টা করো।",infoTitle:"ডেমো মোড",infoBody:"এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",ariaInfo:"অ্যাপ সম্পর্কে",ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
 let curLang=(()=>{ try{ const l=localStorage.getItem('cb_lang'); return l==='bn'?'bn':'en'; }catch(e){ return 'en'; } })();
 function tr(k){ return (STR[curLang]&&STR[curLang][k])||STR.en[k]||k; }
 function locTag(){ return curLang==='bn'?'bn-BD':'en-GB'; }
@@ -1027,7 +1035,8 @@ function applyLang(){
     const sn=o.querySelector('.soon'); if(sn) sn.textContent=tr('soonPill'); });
   document.querySelectorAll('#langmenu button').forEach(b=>b.classList.toggle('on',b.dataset.lang===curLang));
 }
-function setLang(l){ curLang=(l==='bn')?'bn':'en';
+function syncNativeLang(){ try{ const P=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Preferences; if(P) P.set({key:'cb_lang',value:curLang}); }catch(e){} }
+function setLang(l){ curLang=(l==='bn')?'bn':'en'; syncNativeLang();
   try{ localStorage.setItem('cb_lang',curLang); }catch(e){}
   document.cookie='cb_lang='+curLang+';path=/;max-age=31536000;SameSite=Lax';
   applyLang(); if(typeof renderAcct==='function') renderAcct(); if(typeof renderHist==='function') renderHist(); }
@@ -1423,7 +1432,7 @@ if(AUTH_ON){
 }else{
   renderAcct();
 }
-applyLang();
+applyLang(); syncNativeLang();
 renderAcct(); renderHist();
 /* first visit only: show the demo info once, as if the i button was tapped.
    Anyone with traces of earlier use counts as a regular and is not bothered. */
@@ -1433,6 +1442,28 @@ renderAcct(); renderHist();
   localStorage.setItem('cb_seeninfo','1');
   if(!regular) $('infomodal').hidden=false;
 }catch(e){} })();
+
+/* ---------------- maintenance watchdog ----------------
+   If the server cannot be reached (work going on / outage), say so in the
+   user's language instead of leaving a dead screen. */
+let maintShown=false;
+async function healthOk(){
+  try{ const r=await fetch('/health',{cache:'no-store'}); return r.ok; }catch(e){ return false; }
+}
+async function maintWatch(){
+  if(maintShown) return;
+  let ok=await healthOk();
+  for(let k=0;k<2&&!ok;k++){ await new Promise(r=>setTimeout(r,2500)); ok=await healthOk(); }
+  if(!ok){ maintShown=true; $('maintmodal').hidden=false; }
+}
+$('maintRetry').onclick=()=>{ location.reload(); };
+document.addEventListener('visibilitychange',async()=>{
+  if(document.hidden) return;
+  const ok=await healthOk();
+  if(ok&&maintShown){ maintShown=false; $('maintmodal').hidden=true; }
+  else if(!ok) maintWatch();
+});
+maintWatch();
 
 /* ---------------- submit ---------------- */
 form.onsubmit=async e=>{
