@@ -172,11 +172,11 @@ def verify_id_token(token):
         print("token verify failed:", e, flush=True)
         return None
 
-# ---------------- weekly allowance (Upstash Redis REST) ------------------
+# ---------------- two-day allowance (Upstash Redis REST) ------------------
 
-def week_key():
-    iso = datetime.date.today().isocalendar()
-    return f"{iso[0]}-W{iso[1]:02d}"
+def cycle_key():
+    # the free allowance renews every 2 days (fixed 48h cycles)
+    return str(int(time.time()) // (2 * 24 * 3600))
 
 
 def _redis(*args):
@@ -194,7 +194,7 @@ def credits_used(uid, model_key):
     if not CREDITS_ON:
         return 0
     try:
-        val = _redis("GET", f"cb:{uid}:{model_key}:{week_key()}")
+        val = _redis("GET", f"cb:{uid}:{model_key}:{cycle_key()}")
         return int(val) if val is not None else 0
     except Exception as e:  # noqa: BLE001
         print("credits read failed:", e, flush=True)
@@ -205,10 +205,10 @@ def credits_consume(uid, model_key):
     if not CREDITS_ON:
         return
     try:
-        key = f"cb:{uid}:{model_key}:{week_key()}"
+        key = f"cb:{uid}:{model_key}:{cycle_key()}"
         used = _redis("INCR", key)
         if used == 1:
-            _redis("EXPIRE", key, str(8 * 24 * 3600))
+            _redis("EXPIRE", key, str(3 * 24 * 3600))
     except Exception as e:  # noqa: BLE001
         print("credits write failed:", e, flush=True)
 
@@ -258,6 +258,88 @@ def history_save(uid, chats):
     except Exception as e:  # noqa: BLE001
         print("history save failed:", e, flush=True)
         return False
+
+# ---------------- capacity: 10 users at a time, 10 min of chat per hour ----------------
+MAX_ACTIVE = 10          # simultaneous users inside the app
+PRES_TTL = 90            # a presence slot lives this long without a heartbeat
+SESSION_LEN = 10 * 60    # chatting window per hour
+SESSION_GAP = 60 * 60    # a fresh window opens 1h after the previous one started
+
+
+def presence_count():
+    n = 0
+    cur = "0"
+    while True:
+        res = _redis("SCAN", cur, "MATCH", "cbpres:*", "COUNT", "100")
+        cur = str(res[0])
+        n += len(res[1])
+        if cur == "0":
+            return n
+
+
+def presence_admit(uid):
+    """Take or renew the user's presence slot; True when they may be inside.
+    Fails open when Redis is unavailable, so an outage never locks everyone out."""
+    if not HISTORY_ON:
+        return True
+    try:
+        if _redis("GET", f"cbpres:{uid}"):
+            _redis("EXPIRE", f"cbpres:{uid}", str(PRES_TTL))
+            return True
+        if presence_count() >= MAX_ACTIVE:
+            return False
+        _redis("SET", f"cbpres:{uid}", "1")
+        _redis("EXPIRE", f"cbpres:{uid}", str(PRES_TTL))
+        return True
+    except Exception as e:  # noqa: BLE001
+        print("presence failed:", e, flush=True)
+        return True
+
+
+def presence_release(uid):
+    if not HISTORY_ON:
+        return
+    try:
+        _redis("DEL", f"cbpres:{uid}")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def session_state(uid):
+    """(state, resume_ts): 'new' = no window yet, 'open' = inside the 10-minute
+    window, 'over' = window used up; resume_ts = epoch seconds when a fresh
+    window opens (only meaningful for 'over')."""
+    if not HISTORY_ON:
+        return "new", 0
+    try:
+        raw = _redis("GET", f"cbsess:{uid}")
+        if not raw:
+            return "new", 0
+        start = int(raw)
+        now = int(time.time())
+        if now - start >= SESSION_GAP:
+            return "new", 0
+        if now - start >= SESSION_LEN:
+            return "over", start + SESSION_GAP
+        return "open", 0
+    except Exception as e:  # noqa: BLE001
+        print("session read failed:", e, flush=True)
+        return "new", 0
+
+
+def session_touch(uid):
+    """Start the user's hourly window on their first message.
+    Returns (allowed, resume_ts)."""
+    state, resume = session_state(uid)
+    if state == "over":
+        return False, resume
+    if state == "new" and HISTORY_ON:
+        try:
+            _redis("SET", f"cbsess:{uid}", str(int(time.time())))
+            _redis("EXPIRE", f"cbsess:{uid}", str(SESSION_GAP + 600))
+        except Exception as e:  # noqa: BLE001
+            print("session start failed:", e, flush=True)
+    return True, 0
 
 
 def remaining_map(uid):
@@ -593,14 +675,14 @@ PAGE = r"""<!DOCTYPE html>
   .mopt .soon{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent);
        border:1px solid var(--accent);border-radius:999px;padding:3px 8px;opacity:.92}
   /* ---------- soon modal ---------- */
-  #soonmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
+  #soonmodal,#fullmodal,#breakmodal{position:fixed;inset:0;background:rgba(10,2,3,.62);backdrop-filter:blur(3px);
        display:flex;align-items:center;justify-content:center;z-index:70;padding:18px}
-  #soonmodal[hidden]{display:none}
+  #soonmodal[hidden],#fullmodal[hidden],#breakmodal[hidden]{display:none}
   .sm-card{background:linear-gradient(170deg,#521419,#3d0d11);border:1px solid #83413d;border-radius:22px;
        padding:22px 20px;width:min(340px,88vw);box-shadow:0 24px 60px rgba(0,0,0,.6);animation:riseIn .25s ease;text-align:center}
   .sm-t{font-size:17px;font-weight:700}
   .sm-b{font-size:14px;line-height:1.65;margin:10px 0 16px}
-  #soonOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+  #soonOk,#fullRetry,#breakOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
        border-radius:999px;padding:11px;font-family:inherit;font-size:15px;cursor:pointer}
   /* ---------- limit card ---------- */
   #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
@@ -707,7 +789,7 @@ PAGE = r"""<!DOCTYPE html>
   </button>
   <div id="acct">
     <div class="who" id="acctname">লগইন করা নেই</div>
-    <div class="sub">এই সপ্তাহে বাকি ফ্রি মেসেজ</div>
+    <div class="sub">বাকি ফ্রি মেসেজ</div>
     <div id="acctrem"></div>
     <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
     <p class="note" style="margin-top:10px"><a href="/privacy">প্রাইভেসি নীতি</a> · <a href="/terms">শর্তাবলি</a></p>
@@ -779,6 +861,22 @@ PAGE = r"""<!DOCTYPE html>
     <div class="sm-t">এই মডেলটা এখনো শিখছে</div>
     <p class="sm-b" id="soonBody"></p>
     <button id="soonOk" type="button">বুঝেছি</button>
+  </div>
+</div>
+<div id="fullmodal" hidden>
+  <div class="sm-card">
+    <img src="/icon-192.png" alt="" style="width:54px;height:54px;border-radius:15px">
+    <div class="sm-t" style="margin-top:10px">সার্ভার ওভারলোড হয়ে গেছে</div>
+    <p class="sm-b">এই মুহূর্তে অনেক মানুষ একসাথে Chat Bash ব্যবহার করছে, তাই নতুন করে আর ঢোকা যাচ্ছে না। কেউ বের হলেই জায়গা খালি হবে — একটু পরে আবার চেষ্টা করো।</p>
+    <button id="fullRetry" type="button">আবার চেষ্টা করো</button>
+  </div>
+</div>
+<div id="breakmodal" hidden>
+  <div class="sm-card">
+    <img src="/icon-192.png" alt="" style="width:54px;height:54px;border-radius:15px">
+    <div class="sm-t" style="margin-top:10px">এই ঘণ্টার সময় শেষ</div>
+    <p class="sm-b" id="breakBody">সবাই যাতে সুযোগ পায়, তাই প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়।</p>
+    <button id="breakOk" type="button">আবার চেষ্টা করো</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -994,19 +1092,19 @@ async function regen(i,el,btn){
     if(status===200&&data.reply){ pairs[i].a=data.reply;
       if(data.remaining){remaining=data.remaining; renderAcct();}
       typeReply(el,data.reply,()=>persist()); }
-    else{ setRich(el,old); toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
+    else{ setRich(el,old); if(data.error==='session_over'){ admitted=false; showBreak(data.resume); } else toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
   }catch(e){ el.classList.remove('dots'); setRich(el,old); toast('নেটওয়ার্কে সমস্যা'); }
   btn.disabled=false;
 }
 
 /* ---------------- account / menus ---------------- */
-function nextMonday(){ const d=new Date(); const add=(8-d.getDay())%7||7; d.setDate(d.getDate()+add);
-  return d.toLocaleDateString('bn-BD',{weekday:'long',day:'numeric',month:'long'}); }
+function nextReset(){ const step=2*24*3600*1000; const ts=(Math.floor(Date.now()/step)+1)*step;
+  return new Date(ts).toLocaleDateString('bn-BD',{weekday:'long',day:'numeric',month:'long'}); }
 function checkLimit(){ const card=$('limitcard'); if(!card) return;
   const r=remaining[curModel]; const out=(r!==undefined&&r<=0);
   card.hidden=!out; if(!out) return;
   const m=MODELS.find(x=>x.key===curModel);
-  $('limitSub').textContent=(m?m.name:'এই মডেল')+'-এর এই সপ্তাহের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextMonday()+' থেকে।';
+  $('limitSub').textContent=(m?m.name:'এই মডেল')+'-এর এই পর্বের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextReset()+' থেকে।';
   const alt=MODELS.find(x=>x.key!==curModel&&!x.soon&&(remaining[x.key]===undefined||remaining[x.key]>0));
   const btn=$('limitBtn');
   if(alt){ btn.disabled=false; btn.textContent=alt.name+' ব্যবহার করো'; btn.onclick=()=>{ setModel(alt.key); toast('মডেল: '+alt.name); }; }
@@ -1021,7 +1119,7 @@ function renderAcct(){
   const box=$('acctrem'); box.innerHTML='';
   MODELS.forEach(m=>{ const r=remaining[m.key];
     const line=document.createElement('div'); line.className='remline';
-    line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?('সপ্তাহে '+m.cap+'টি'):('বাকি '+r+' / '+m.cap))+'</span>';
+    line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?('দুই দিনে '+m.cap+'টি'):('বাকি '+r+' / '+m.cap))+'</span>';
     box.appendChild(line); });
   if(currentUser){ $('acctname').textContent=currentUser.displayName||currentUser.email||'';
     const nm=currentUser.displayName||currentUser.email||'';
@@ -1041,7 +1139,7 @@ setTheme((()=>{ try{ return localStorage.getItem('cb_theme')||''; }catch(e){ ret
 $('thembtn').onclick=e=>{ e.stopPropagation(); const m=$('thememenu'); m.classList.toggle('open'); plusmenu.classList.remove('open'); acct.classList.remove('open'); };
 document.querySelectorAll('#thememenu button').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); $('thememenu').classList.remove('open'); toast('থিম বদলানো হয়েছে'); }; });
 $('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); };
-$('logout').onclick=async()=>{ closeMenus(); if(AUTH_ON){ try{ const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication; if(FA) await FA.signOut(); }catch(e){} firebase.auth().signOut(); } };
+$('logout').onclick=async()=>{ closeMenus(); admitted=false; if(presTimer){clearInterval(presTimer); presTimer=null;} $('fullmodal').hidden=true; $('breakmodal').hidden=true; if(AUTH_ON){ try{ const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication; if(FA) await FA.signOut(); }catch(e){} firebase.auth().signOut(); } };
 document.addEventListener('click',e=>{ if(!acct.contains(e.target)&&e.target!==$('dots')) acct.classList.remove('open');
   if(!plusmenu.contains(e.target)&&e.target!==$('plus')&&!$('plus').contains(e.target)) plusmenu.classList.remove('open');
   const tm=$('thememenu'); if(!tm.contains(e.target)&&e.target!==$('thembtn')&&!$('thembtn').contains(e.target)) tm.classList.remove('open'); });
@@ -1120,6 +1218,32 @@ function wireAppLinks(){
   Capacitor.Plugins.App.getLaunchUrl().then(u=>{ if(u&&u.url) handleUrl(u); }).catch(()=>{});
 }
 
+/* ---------------- capacity gate: 10 inside at a time, 10 min chat per hour ---------------- */
+let admitted=false, presTimer=null;
+function fmtTime(ts){ return new Date(ts*1000).toLocaleTimeString('bn-BD',{hour:'numeric',minute:'2-digit'}); }
+function showBreak(resume){
+  if(resume) $('breakBody').textContent='সবাই যাতে সুযোগ পায়, তাই প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়। আবার কথা বলা যাবে '+fmtTime(resume)+' থেকে।';
+  $('breakmodal').hidden=false;
+}
+async function tryEnter(){
+  if(!AUTH_ON||!currentUser) return true;
+  try{
+    const t=await currentUser.getIdToken();
+    const r=await fetch('/enter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:t})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&d.ok){ admitted=true; $('fullmodal').hidden=true; $('breakmodal').hidden=true;
+      if(!presTimer) presTimer=setInterval(tryEnter,30000);
+      return true; }
+    admitted=false;
+    if(d.reason==='break'){ $('fullmodal').hidden=true; showBreak(d.resume); }
+    else{ $('breakmodal').hidden=true; $('fullmodal').hidden=false; }
+    return false;
+  }catch(e){ return true; }
+}
+$('fullRetry').onclick=()=>tryEnter();
+$('breakOk').onclick=()=>tryEnter();
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&currentUser) tryEnter(); });
+
 /* ---------------- auth ---------------- */
 async function refreshMe(){
   if(!currentUser) return;
@@ -1135,7 +1259,7 @@ if(AUTH_ON){
   wireAppLinks();
   firebase.auth().onAuthStateChanged(u=>{
     currentUser=u;
-    if(u){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); if(regWanted){ regWanted=false; toast('স্বাগতম! তোমার অ্যাকাউন্ট তৈরি হয়ে গেছে'); } }
+    if(u){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); tryEnter(); if(regWanted){ regWanted=false; toast('স্বাগতম! তোমার অ্যাকাউন্ট তৈরি হয়ে গেছে'); } }
     else{ loginEl.style.display='flex'; }
     renderAcct();
   });
@@ -1187,6 +1311,7 @@ form.onsubmit=async e=>{
     wait.classList.remove('dots');
     if(status===401){ setRich(wait,'লগইনের মেয়াদ শেষ — আবার লগইন করো।');
       if(AUTH_ON) loginEl.style.display='flex'; }
+    else if(data.error==='session_over'){ setRich(wait,data.reply); admitted=false; if(presTimer){clearInterval(presTimer); presTimer=null;} showBreak(data.resume); if(data.remaining){remaining=data.remaining; renderAcct();} }
     else if(status===429){ setRich(wait,data.reply); if(data.remaining){remaining=data.remaining; renderAcct();} }
     else if(data.reply){ typeReply(wait,data.reply,()=>{ pairs.push({u:text,a:data.reply,f:''}); attachActions(wait,idx); persist(); });
       if(data.remaining){remaining=data.remaining; renderAcct();} }
@@ -1293,7 +1418,7 @@ def _legal_page(title, body_html):
 
 PRIVACY_BODY = """
 <h2>১. আমরা কী তথ্য সংগ্রহ করি</h2>
-<p>Chat Bash চালাতে যতটুকু দরকার, শুধু ততটুকুই: (ক) Google লগইন থেকে পাওয়া তোমার নাম ও ইমেইল ঠিকানা; (খ) তোমার পাঠানো প্রশ্ন ও AI-এর উত্তর — যা চ্যাট হিস্ট্রি হিসেবে তোমার অ্যাকাউন্টে সংরক্ষিত থাকে; (গ) প্রতি মডেলে প্রতি সপ্তাহে তুমি কতগুলো মেসেজ পাঠিয়েছ, সেই সংখ্যা (ফ্রি লিমিটের হিসাব রাখতে)। তোমার Google পাসওয়ার্ড আমরা কখনোই পাই না বা সংরক্ষণ করি না — লগইন সম্পূর্ণ Google-এর নিজস্ব সুরক্ষিত পদ্ধতিতে হয়।</p>
+<p>Chat Bash চালাতে যতটুকু দরকার, শুধু ততটুকুই: (ক) Google লগইন থেকে পাওয়া তোমার নাম ও ইমেইল ঠিকানা; (খ) তোমার পাঠানো প্রশ্ন ও AI-এর উত্তর — যা চ্যাট হিস্ট্রি হিসেবে তোমার অ্যাকাউন্টে সংরক্ষিত থাকে; (গ) প্রতি মডেলে প্রতি দুই দিনে তুমি কতগুলো মেসেজ পাঠিয়েছ, সেই সংখ্যা (ফ্রি লিমিটের হিসাব রাখতে)। তোমার Google পাসওয়ার্ড আমরা কখনোই পাই না বা সংরক্ষণ করি না — লগইন সম্পূর্ণ Google-এর নিজস্ব সুরক্ষিত পদ্ধতিতে হয়।</p>
 <h2>২. তথ্য কেন ব্যবহার করি</h2>
 <p>শুধু সেবাটা দিতে: তোমাকে চেনা, তোমার হিস্ট্রি দেখানো, ফ্রি লিমিট প্রয়োগ করা এবং অপব্যবহার ঠেকানো।</p>
 <h2>৩. AI প্রসেসিং</h2>
@@ -1320,7 +1445,7 @@ TERMS_BODY = """
 <h2>২. অ্যাকাউন্ট</h2>
 <p>সেবাটি ব্যবহার করতে Google অ্যাকাউন্ট দিয়ে লগইন করতে হয়। নিজের অ্যাকাউন্টের নিরাপত্তা রক্ষা করা তোমার নিজের দায়িত্ব।</p>
 <h2>৩. ফ্রি লিমিট</h2>
-<p>প্রতি মডেলে প্রতি সপ্তাহে নির্দিষ্ট সংখ্যক ফ্রি মেসেজ পাওয়া যায়। এই সীমা ও মডেলের তালিকা যেকোনো সময় পরিবর্তন হতে পারে।</p>
+<p>প্রতি মডেলে প্রতি দুই দিনে নির্দিষ্ট সংখ্যক ফ্রি মেসেজ পাওয়া যায়। সবার জন্য সুবিধা রাখতে একসাথে সর্বোচ্চ ১০ জন ব্যবহারকারী অ্যাপে থাকতে পারে, আর প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়। এই সীমা ও মডেলের তালিকা যেকোনো সময় পরিবর্তন হতে পারে।</p>
 <h2>৪. উত্তরের নির্ভুলতা</h2>
 <p>AI-এর উত্তর ভুল হতে পারে। গুরুত্বপূর্ণ বিষয়ে যাচাই না করে শুধু এই উত্তরের ওপর নির্ভর করে সিদ্ধান্ত নেবে না। এই সেবার উত্তর কোনোভাবেই চিকিৎসা, আইনি বা আর্থিক পরামর্শ নয় — এমন প্রয়োজনে সংশ্লিষ্ট পেশাদারের পরামর্শ নাও।</p>
 <h2>৫. নিষিদ্ধ ব্যবহার</h2>
@@ -1435,6 +1560,20 @@ def auth_exchange():
         return jsonify({"error": "failed"}), 500
 
 
+@app.post("/enter")
+def enter():
+    user = authed_user(request)
+    if user is None:
+        return jsonify({"error": "unauthorized"}), 401
+    state, resume = session_state(user["uid"])
+    if state == "over":
+        presence_release(user["uid"])
+        return jsonify({"ok": False, "reason": "break", "resume": resume}), 403
+    if not presence_admit(user["uid"]):
+        return jsonify({"ok": False, "reason": "overloaded"}), 503
+    return jsonify({"ok": True})
+
+
 @app.post("/history/get")
 def history_get():
     user = authed_user(request)
@@ -1461,6 +1600,16 @@ def chat():
     user = authed_user(request)
     if user is None:
         return jsonify({"reply": "আগে Google দিয়ে লগইন করো, তারপর চ্যাট করা যাবে।"}), 401
+    allowed, resume = session_touch(user["uid"])
+    if not allowed:
+        presence_release(user["uid"])
+        return jsonify({
+            "error": "session_over",
+            "reply": "এই ঘণ্টার ১০ মিনিট চ্যাটিং শেষ! সবার সুযোগের জন্য একটু বিরতি নাও — "
+                     "কিছুক্ষণ পর আবার কথা বলা যাবে।",
+            "resume": resume,
+            "remaining": remaining_map(user["uid"]),
+        }), 403
     model_key = data.get("model") or DEFAULT_MODEL
     if model_key not in MODELS:
         model_key = DEFAULT_MODEL
@@ -1468,8 +1617,8 @@ def chat():
         used = credits_used(user["uid"], model_key)
         if used >= MODELS[model_key]["cap"]:
             return jsonify({
-                "reply": f"এই মডেলে ({MODELS[model_key]['name']}) এই সপ্তাহের ফ্রি মেসেজ শেষ! "
-                         "সামনের সপ্তাহে আবার পাবে — ততক্ষণ অন্য মডেলটা ব্যবহার করে দেখো।",
+                "reply": f"এই মডেলে ({MODELS[model_key]['name']}) এই পর্বের ফ্রি মেসেজ শেষ! "
+                         "দুই দিন পর আবার নতুন লিমিট পাবে — ততক্ষণ অন্য মডেলটা ব্যবহার করে দেখো।",
                 "remaining": remaining_map(user["uid"]),
             }), 429
     try:
