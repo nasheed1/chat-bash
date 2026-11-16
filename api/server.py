@@ -544,6 +544,15 @@ PAGE = r"""<!DOCTYPE html>
   .chip{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;
         padding:8px 14px;font-size:13.5px;cursor:pointer;font-family:inherit}
   .chip:hover{background:var(--panel)}
+  /* ---------- limit card ---------- */
+  #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+       padding:14px 16px;width:calc(100% - 24px);max-width:876px;margin:10px auto 0;position:relative;z-index:1}
+  #limitcard[hidden]{display:none}
+  #limitcard .lt{font-size:15.5px;font-weight:600}
+  #limitcard .ls{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.55}
+  #limitBtn{margin-top:12px;width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+       border-radius:999px;padding:10px;font-family:inherit;font-size:14.5px;cursor:pointer}
+  #limitBtn:disabled{opacity:.55;cursor:default}
   /* ---------- input pill ---------- */
   form{display:flex;align-items:center;gap:2px;background:var(--panel);border-radius:28px;
        padding:5px;width:calc(100% - 24px);max-width:876px;margin:10px auto 4px}
@@ -576,16 +585,28 @@ PAGE = r"""<!DOCTYPE html>
           border-right:1px solid var(--line)}
   #drawer.on{transform:translateX(0)}
   #drawer .dhead{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
-  #drawer .dhead b{font-size:16.5px}
-  #newchat{display:flex;align-items:center;justify-content:center;margin:4px 14px 10px;background:var(--bubble);color:var(--text);border:1px solid var(--line);
+  #drawer .dhead b{font-size:16.5px;display:flex;align-items:center;gap:9px}
+  #drawer .dlogo{width:27px;height:27px;border-radius:8px;flex:none}
+  #newchat{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 14px 10px;background:var(--bubble);color:var(--text);border:1px solid var(--line);
            border-radius:999px;padding:10px;font-family:inherit;font-size:14.5px;cursor:pointer}
+  #newchat svg{width:16px;height:16px;flex:none}
+  .dsec{padding:10px 18px 2px;font-size:12px;font-weight:600;letter-spacing:.05em;color:var(--muted)}
   #histlist{flex:1;overflow-y:auto;padding:2px 8px}
-  .hitem{padding:10px 10px;border-radius:12px;cursor:pointer}
+  .hitem{display:flex;gap:11px;align-items:flex-start;padding:10px;border-radius:12px;cursor:pointer}
   .hitem:hover,.hitem.cur{background:var(--bubble)}
+  .hitem .hic{flex:none;width:18px;height:18px;margin-top:1px;color:var(--muted)}
+  .hitem .hic svg{width:100%;height:100%;display:block}
+  .hitem .hmeta{min-width:0;flex:1}
   .hitem .t{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hitem .d{font-size:11.5px;color:var(--muted);margin-top:1px}
   .hempty{color:var(--muted);font-size:13.5px;padding:12px 10px;line-height:1.6}
-  #drawer .dfoot{padding:12px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);word-break:break-all}
+  #drawer .dfoot{display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--line)}
+  #drawer .dfoot[hidden]{display:none}
+  #drawer .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#43100f;font-weight:700;
+           font-size:15.5px;display:flex;align-items:center;justify-content:center;flex:none}
+  #drawer .pmeta{min-width:0}
+  #drawer .pname{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #drawer .pmail{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* ---------- toast ---------- */
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--menu);
          color:var(--text);border:1px solid var(--line);font-size:13.5px;padding:9px 16px;border-radius:999px;
@@ -645,6 +666,11 @@ PAGE = r"""<!DOCTYPE html>
   <button class="chip" type="button">আজ ঢাকার আবহাওয়া কেমন?</button>
   <button class="chip" type="button">কক্সবাজার ভ্রমণের টিপস দাও</button>
 </div>
+<div id="limitcard" hidden>
+  <div class="lt">এই মডেলের সাপ্তাহিক লিমিট শেষ</div>
+  <div class="ls" id="limitSub"></div>
+  <button id="limitBtn" type="button">অন্য মডেল ব্যবহার করো</button>
+</div>
 <form id="f">
   <button class="icobtn" id="plus" type="button" aria-label="আরও অপশন">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -667,14 +693,18 @@ PAGE = r"""<!DOCTYPE html>
 
 <div id="scrim"></div>
 <aside id="drawer">
-  <div class="dhead"><b><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.6" fill="#1d7a3a"/><circle cx="12.8" cy="12" r="5.2" fill="#d42a24"/></svg> Chat Bash</b>
+  <div class="dhead"><b><img class="dlogo" src="/icon-192.png" alt=""> Chat Bash</b>
     <button class="icobtn" id="dclose" type="button" aria-label="বন্ধ করো">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট শুরু করো</button>
+  <div class="dsec">সাম্প্রতিক চ্যাট</div>
   <div id="histlist"></div>
-  <div class="dfoot" id="dfoot"></div>
+  <div class="dfoot" id="dfoot" hidden>
+    <div class="avatar" id="davatar">C</div>
+    <div class="pmeta"><div class="pname" id="dname"></div><div class="pmail" id="dmail"></div></div>
+  </div>
 </aside>
 
 <div id="toast"></div>
@@ -723,7 +753,8 @@ MODELS.forEach(m=>{
   modelMenu.appendChild(b);
 });
 function setModel(k){ curModel=k; const m=MODELS.find(x=>x.key===k); if(m) $('modelName').textContent=m.name;
-  modelMenu.querySelectorAll('.mopt').forEach(o=>o.classList.toggle('on',o.dataset.key===k)); }
+  modelMenu.querySelectorAll('.mopt').forEach(o=>o.classList.toggle('on',o.dataset.key===k));
+  if(typeof checkLimit==='function') checkLimit(); }
 setModel(curModel);
 $('modelBtn').onclick=e=>{ e.stopPropagation(); modelMenu.hidden=!modelMenu.hidden; };
 document.addEventListener('click',e=>{ if(!modelMenu.hidden&&!e.target.closest('.modelwrap')) modelMenu.hidden=true; });
@@ -771,9 +802,13 @@ function renderHist(){
   if(!all.length){ list.innerHTML='<div class="hempty">এখনো কোনো আগের চ্যাট নেই। প্রশ্ন করলেই এখানে হিস্ট্রি জমা হবে।</div>'; return; }
   all.forEach(c=>{
     const d=document.createElement('div'); d.className='hitem'+(c.id===currentId?' cur':'');
+    const ic=document.createElement('span'); ic.className='hic';
+    ic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8.4 8.4 0 01-8.4 8.3c-1.3 0-2.6-.3-3.7-.8L3.5 20l1-4.8a8.3 8.3 0 01-1-3.9 8.4 8.4 0 018.6-8.3 8.4 8.4 0 018.4 8.6z"/></svg>';
+    const meta=document.createElement('div'); meta.className='hmeta';
     const t=document.createElement('div'); t.className='t'; t.textContent=(c.pairs&&c.pairs[0]?c.pairs[0].u:'নতুন চ্যাট');
     const s=document.createElement('div'); s.className='d'; s.textContent=new Date(c.ts).toLocaleDateString('bn-BD',{day:'numeric',month:'long'})+' · '+(c.pairs?c.pairs.length:0)+'টি প্রশ্ন';
-    d.appendChild(t); d.appendChild(s);
+    meta.appendChild(t); meta.appendChild(s);
+    d.appendChild(ic); d.appendChild(meta);
     d.onclick=()=>{ loadChat(c); closeDrawer(); };
     list.appendChild(d);
   });
@@ -875,6 +910,17 @@ async function regen(i,el,btn){
 }
 
 /* ---------------- account / menus ---------------- */
+function nextMonday(){ const d=new Date(); const add=(8-d.getDay())%7||7; d.setDate(d.getDate()+add);
+  return d.toLocaleDateString('bn-BD',{weekday:'long',day:'numeric',month:'long'}); }
+function checkLimit(){ const card=$('limitcard'); if(!card) return;
+  const r=remaining[curModel]; const out=(r!==undefined&&r<=0);
+  card.hidden=!out; if(!out) return;
+  const m=MODELS.find(x=>x.key===curModel);
+  $('limitSub').textContent=(m?m.name:'এই মডেল')+'-এর এই সপ্তাহের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextMonday()+' থেকে।';
+  const alt=MODELS.find(x=>x.key!==curModel&&(remaining[x.key]===undefined||remaining[x.key]>0));
+  const btn=$('limitBtn');
+  if(alt){ btn.disabled=false; btn.textContent=alt.name+' ব্যবহার করো'; btn.onclick=()=>{ setModel(alt.key); toast('মডেল: '+alt.name); }; }
+  else{ btn.disabled=true; btn.textContent='সব মডেলের লিমিট শেষ'; btn.onclick=null; } }
 function renderAcct(){
   const box=$('acctrem'); box.innerHTML='';
   MODELS.forEach(m=>{ const r=remaining[m.key];
@@ -882,8 +928,12 @@ function renderAcct(){
     line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?('সপ্তাহে '+m.cap+'টি'):('বাকি '+r+' / '+m.cap))+'</span>';
     box.appendChild(line); });
   if(currentUser){ $('acctname').textContent=currentUser.displayName||currentUser.email||'';
-    $('dfoot').textContent=currentUser.email||''; $('logout').style.display='block'; }
-  else{ $('acctname').textContent='লগইন করা নেই'; $('dfoot').textContent=''; $('logout').style.display='none'; }
+    const nm=currentUser.displayName||currentUser.email||'';
+    $('dname').textContent=nm; $('dmail').textContent=currentUser.email||'';
+    $('davatar').textContent=(nm.trim().charAt(0)||'C').toUpperCase(); $('dfoot').hidden=false;
+    $('logout').style.display='block'; }
+  else{ $('acctname').textContent='লগইন করা নেই'; $('dfoot').hidden=true; $('logout').style.display='none'; }
+  checkLimit();
 }
 function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); }
 $('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); };
