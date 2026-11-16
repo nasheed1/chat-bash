@@ -628,7 +628,6 @@ PAGE = r"""<!DOCTYPE html>
   @keyframes popIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:none}}
   @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes blink{50%{opacity:0}}
   #modelMenu{animation:popIn .16s ease}
   #acct.open{animation:popIn .16s ease}
   #plusmenu.open{animation:popIn .16s ease}
@@ -637,8 +636,6 @@ PAGE = r"""<!DOCTYPE html>
   .msg{animation:fadeIn .25s ease}
   .icobtn{transition:transform .12s ease}
   .icobtn:active{transform:scale(.88)}
-  .caret{display:inline-block;width:8px;height:1.02em;background:var(--accent);margin-left:2px;
-         vertical-align:text-bottom;border-radius:1.5px;animation:blink .9s steps(1) infinite}
   @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important} }
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
   .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
@@ -1141,15 +1138,18 @@ function typeReply(el, full, done){
   if(!x||!full){ setRich(el, full||''); if(done) done(); return; }
   const tmp=document.createElement('div'); tmp.innerHTML=md(full);
   const plain=tmp.textContent||full;
-  const caret=document.createElement('span'); caret.className='caret';
-  let i=0; const step=Math.max(3, Math.ceil(plain.length/110));
+  let units;
+  try{ units=[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(plain)].map(g=>g.segment); }
+  catch(e){ units=Array.from(plain); }
+  let i=0; const step=Math.max(1, Math.ceil(units.length/450)); let vt=0;
   x.textContent='';
   const iv=setInterval(()=>{
     i+=step;
-    x.textContent=plain.slice(0,i); x.appendChild(caret);
+    x.textContent=units.slice(0,i).join('');
     chat.scrollTop=chat.scrollHeight;
-    if(i>=plain.length){ clearInterval(iv); setRich(el, full); chat.scrollTop=chat.scrollHeight; if(done) done(); }
-  }, 16);
+    if(i<units.length && ++vt%6===0 && navigator.vibrate){ try{ navigator.vibrate(7); }catch(e){} }
+    if(i>=units.length){ clearInterval(iv); setRich(el, full); chat.scrollTop=chat.scrollHeight; if(done) done(); }
+  }, 20);
 }
 function add(text,cls){const d=document.createElement('div');d.className='msg '+cls;
   if(cls==='a'){ const x=document.createElement('div'); x.className='txt'; x.innerHTML=md(text); d.appendChild(x); }
