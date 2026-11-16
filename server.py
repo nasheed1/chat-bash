@@ -17,19 +17,22 @@ Env vars:
   GEMINI_API_KEY, GROQ_API_KEY          provider keys (server-side only)
   FIREBASE_PROJECT_ID                   enables login enforcement
   FIREBASE_WEB_CONFIG_JSON              public web config JSON for the page
-  UPSTASH_REDIS_REST_URL / _TOKEN       enables weekly allowance counting
+  UPSTASH_REDIS_REST_URL / _TOKEN       enables two-day allowance counting
   APP_NAME                              display name (default: Chat Bash)
 If FIREBASE_PROJECT_ID is unset the app runs in DEV mode (no login needed)
 — local testing only.
 """
+import base64
 import datetime
+import hashlib
+import hmac
 import json
 import os
 import secrets
 import time
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, make_response, request
 
 try:
     from ddgs import DDGS
@@ -105,6 +108,27 @@ LIVE_HINTS = [
 ]
 
 GENERIC_ERROR = "দুঃখিত, এই মুহূর্তে উত্তরটা তৈরি করা যাচ্ছে না। একটু পরে আবার চেষ্টা করো।"
+CANNED = {
+    "en": {
+        "empty": "Type a question first!",
+        "login_first": "Log in with Google first — then you can chat.",
+        "generic": "Sorry, I couldn't prepare the answer right now. Please try again in a little while.",
+        "session_over": "Your 10 minutes of chatting for this hour are over! Take a short break so everyone gets a chance — you can chat again in a little while.",
+        "limit": "This model's ({name}) free messages for this round are over! You'll get a fresh limit in two days — try another model meanwhile.",
+    },
+    "bn": {
+        "empty": "আগে একটা প্রশ্ন লেখো তো!",
+        "login_first": "আগে Google দিয়ে লগইন করো, তারপর চ্যাট করা যাবে।",
+        "generic": GENERIC_ERROR,
+        "session_over": "এই ঘণ্টার ১০ মিনিট চ্যাটিং শেষ! সবার সুযোগের জন্য একটু বিরতি নাও — কিছুক্ষণ পর আবার কথা বলা যাবে।",
+        "limit": "এই মডেলে ({name}) এই পর্বের ফ্রি মেসেজ শেষ! দুই দিন পর আবার নতুন লিমিট পাবে — ততক্ষণ অন্য মডেলটা ব্যবহার করে দেখো।",
+    },
+}
+
+
+def canned(lang, key, **kw):
+    txt = CANNED.get(lang, CANNED["en"])[key]
+    return txt.format(**kw) if kw else txt
 
 app = Flask(__name__)
 
@@ -531,7 +555,7 @@ def respond(message, history, model_key):
 # ---------------- page + routes ----------------
 
 PAGE = r"""<!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -568,15 +592,17 @@ PAGE = r"""<!DOCTYPE html>
   [data-theme="green"] .sm-card{background:linear-gradient(170deg,#0d4530,#07271b);border-color:#1f7a52}
   [data-theme="green"] #send{background:#d42a24;color:#fff}
   /* ---------- theme menu ---------- */
-  #thememenu{position:fixed;left:52px;bottom:86px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
+  #thememenu,#langmenu{position:fixed;left:52px;bottom:86px;background:var(--menu);border:1px solid var(--line);border-radius:16px;
             padding:6px;display:none;z-index:40;box-shadow:0 12px 34px rgba(0,0,0,.45);min-width:204px}
-  #thememenu.open{display:block;animation:popIn .16s ease}
-  #thememenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
-            font-family:inherit;font-size:14.5px;padding:9px 10px;border-radius:11px;cursor:pointer;text-align:left}
-  #thememenu button:hover{background:var(--bubble)}
+  #thememenu.open,#langmenu.open{display:block;animation:popIn .16s ease}
+  #thememenu button,#langmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
+            font-family:inherit;font-size:14.5px;padding:8px 10px 10px;border-radius:11px;cursor:pointer;text-align:left;line-height:1.3}
+  #thememenu button:hover,#langmenu button:hover{background:var(--bubble)}
   #thememenu .sw{width:18px;height:18px;border-radius:50%;flex:none;border:1px solid var(--line)}
-  #thememenu .tk{margin-left:auto;width:8px;height:8px;border-radius:50%;flex:none}
-  #thememenu button.on .tk{background:var(--accent)}
+  #thememenu .tk,#langmenu .tk{margin-left:auto;width:8px;height:8px;border-radius:50%;flex:none}
+  #thememenu button.on .tk,#langmenu button.on .tk{background:var(--accent)}
+  #langmenu{left:104px}
+  #langmenu .swtxt{width:26px;font-size:11.5px;font-weight:700;color:var(--accent);flex:none;letter-spacing:.02em}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;background:linear-gradient(168deg,#5c1216 0%,#38070d 55%,#260509 100%);color:var(--text);
        display:flex;flex-direction:column;height:100dvh;overflow:hidden}
@@ -618,7 +644,7 @@ PAGE = r"""<!DOCTYPE html>
   header{display:flex;align-items:center;gap:4px;padding:8px 10px;width:100%;max-width:900px;margin:0 auto;position:relative;z-index:15}
   .modelwrap{display:flex;align-items:center;gap:2px;min-width:0;margin-right:auto;position:relative}
   #modelBtn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text);
-         font-family:inherit;font-size:17px;font-weight:600;padding:8px 2px;cursor:pointer;max-width:46vw}
+         font-family:inherit;font-size:17px;font-weight:600;padding:8px 2px;cursor:pointer;max-width:46vw;line-height:1.3}
   #modelMenu{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--menu);
          border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.55);padding:6px;z-index:46}
   .mopt{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);
@@ -636,11 +662,11 @@ PAGE = r"""<!DOCTYPE html>
   #acct.open{display:block}
   #acct .who{font-size:14.5px;font-weight:600;margin-bottom:2px;word-break:break-all}
   #acct .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
-  #acct .remline{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-top:1px solid var(--line)}
+  #acct .remline{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:5px 0;border-top:1px solid var(--line);line-height:1.35}
   #acct .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5;display:flex;gap:6px;align-items:flex-start}
   #acct .note svg{flex:none;margin-top:2px}
   #logout{margin-top:12px;width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
-          border-radius:999px;padding:9px;font-family:inherit;font-size:14px;cursor:pointer}
+          border-radius:999px;padding:8px 9px 10px;font-family:inherit;font-size:14px;cursor:pointer;line-height:1.3}
   /* ---------- demo strip ---------- */
   #demo{background:rgba(61,13,17,.82);color:#f5c04e;border-top:1px solid #6e2a2e;border-bottom:1px solid #6e2a2e;
         display:flex;align-items:center;justify-content:center;gap:7px;text-align:center;font-size:12.5px;line-height:1.45;padding:6px 14px}
@@ -670,7 +696,7 @@ PAGE = r"""<!DOCTYPE html>
   /* ---------- chips ---------- */
   .chips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 16px 2px;max-width:900px;margin:0 auto;width:100%}
   .chip{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:999px;
-        padding:8px 14px;font-size:13.5px;cursor:pointer;font-family:inherit}
+        padding:7px 14px 9px;font-size:13.5px;cursor:pointer;font-family:inherit;line-height:1.3;display:inline-flex;align-items:center}
   .chip:hover{background:var(--panel)}
   .mopt .soon{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent);
        border:1px solid var(--accent);border-radius:999px;padding:3px 8px;opacity:.92}
@@ -683,7 +709,7 @@ PAGE = r"""<!DOCTYPE html>
   .sm-t{font-size:17px;font-weight:700}
   .sm-b{font-size:14px;line-height:1.65;margin:10px 0 16px}
   #soonOk,#fullRetry,#breakOk{width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
-       border-radius:999px;padding:11px;font-family:inherit;font-size:15px;cursor:pointer}
+       border-radius:999px;padding:10px 11px 12px;font-family:inherit;font-size:15px;cursor:pointer;line-height:1.3;display:flex;align-items:center;justify-content:center}
   /* ---------- limit card ---------- */
   #limitcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;
        padding:14px 16px;width:calc(100% - 24px);max-width:876px;margin:10px auto 0;position:relative;z-index:1}
@@ -691,12 +717,12 @@ PAGE = r"""<!DOCTYPE html>
   #limitcard .lt{font-size:15.5px;font-weight:600}
   #limitcard .ls{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.55}
   #limitBtn{margin-top:12px;width:100%;background:var(--bubble);color:var(--text);border:1px solid var(--line);
-       border-radius:999px;padding:10px;font-family:inherit;font-size:14.5px;cursor:pointer}
+       border-radius:999px;padding:9px 10px 11px;font-family:inherit;font-size:14.5px;cursor:pointer;line-height:1.3;display:flex;align-items:center;justify-content:center}
   #limitBtn:disabled{opacity:.55;cursor:default}
   /* ---------- input pill ---------- */
   form{display:flex;align-items:center;gap:2px;background:var(--panel);border-radius:28px;
        padding:5px;width:calc(100% - 24px);max-width:876px;margin:10px auto 4px}
-  #q{flex:1;padding:10px 6px;border:none;font-size:16px;font-family:inherit;background:transparent;color:var(--text);min-width:0}
+  #q{flex:1;padding:10px 6px;border:none;font-size:16px;font-family:inherit;background:transparent;color:var(--text);min-width:0;line-height:1.35}
   #q:focus{outline:none}
   #q::placeholder{color:var(--muted)}
   #send{background:var(--accent);color:var(--accent-ink);border:none;border-radius:50%;
@@ -715,7 +741,7 @@ PAGE = r"""<!DOCTYPE html>
   #newchat svg{width:15px;height:15px;vertical-align:-2.5px;margin-right:5px}
   .dhead b svg{width:19px;height:19px;vertical-align:-4px;margin-right:5px}
   #plusmenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;color:var(--text);
-                   font-family:inherit;font-size:14.5px;padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
+                   font-family:inherit;font-size:14.5px;padding:9px 12px 11px;border-radius:10px;cursor:pointer;text-align:left;line-height:1.3}
   #plusmenu button:hover{background:var(--bubble)}
   /* ---------- drawer / history ---------- */
   #scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:25}
@@ -728,7 +754,7 @@ PAGE = r"""<!DOCTYPE html>
   #drawer .dhead b{font-size:16.5px;display:flex;align-items:center;gap:9px}
   #drawer .dlogo{width:27px;height:27px;border-radius:8px;flex:none}
   #newchat{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 14px 10px;background:var(--bubble);color:var(--text);border:1px solid var(--line);
-           border-radius:999px;padding:10px;font-family:inherit;font-size:14.5px;cursor:pointer}
+           border-radius:999px;padding:9px 10px 11px;font-family:inherit;font-size:14.5px;cursor:pointer;line-height:1.3}
   #newchat svg{width:16px;height:16px;flex:none}
   .dsec{padding:10px 18px 2px;font-size:12px;font-weight:600;letter-spacing:.05em;color:var(--muted)}
   #histlist{flex:1;overflow-y:auto;padding:2px 8px}
@@ -737,8 +763,8 @@ PAGE = r"""<!DOCTYPE html>
   .hitem .hic{flex:none;width:18px;height:18px;margin-top:1px;color:var(--muted)}
   .hitem .hic svg{width:100%;height:100%;display:block}
   .hitem .hmeta{min-width:0;flex:1}
-  .hitem .t{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hitem .d{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .hitem .t{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+  .hitem .d{font-size:11.5px;color:var(--muted);margin-top:1px;line-height:1.35}
   .hempty{color:var(--muted);font-size:13.5px;padding:12px 10px;line-height:1.6}
   #drawer .dfoot{display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--line)}
   #drawer .dfoot[hidden]{display:none}
@@ -749,7 +775,7 @@ PAGE = r"""<!DOCTYPE html>
   #drawer .pmail{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* ---------- toast ---------- */
   #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--menu);
-         color:var(--text);border:1px solid var(--line);font-size:13.5px;padding:9px 16px;border-radius:999px;
+         color:var(--text);border:1px solid var(--line);font-size:13.5px;padding:8px 16px 10px;border-radius:999px;line-height:1.3;
          opacity:0;pointer-events:none;transition:all .25s;z-index:50;max-width:88vw;text-align:center}
   #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   /* ---------- login ---------- */
@@ -759,7 +785,7 @@ PAGE = r"""<!DOCTYPE html>
   #login .lgo{width:78px;height:78px;border-radius:20px;box-shadow:0 8px 22px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.14)}
   #login .lname{font-size:21px;font-weight:700;margin:13px 0 20px;letter-spacing:.2px}
   #gbtn,#gbtn2{width:100%;display:flex;justify-content:center;align-items:center;gap:10px;border-radius:999px;
-       padding:12.5px 18px;font-size:15.5px;font-family:inherit;cursor:pointer;font-weight:600}
+       padding:11.5px 18px 13.5px;font-size:15.5px;font-family:inherit;cursor:pointer;font-weight:600;line-height:1.3}
   #gbtn{background:#fff;color:#1f1f1f;border:1px solid #fff}
   #gbtn2{background:transparent;color:var(--text);border:1.5px solid var(--accent)}
   .gicon{width:19px;height:19px;flex:none}
@@ -774,81 +800,89 @@ PAGE = r"""<!DOCTYPE html>
 <body>
 <div id="bamboo" aria-hidden="true"><svg viewBox="0 0 420 920" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg"><rect x="331.5" y="-20" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="86" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="98" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="204" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="216" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="322" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="334" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="440" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="452" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="558" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="570" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="676" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="688" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="794" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="806" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="912" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="331.5" y="924" width="25" height="110" rx="9" fill="#d9905f" opacity="0.16"/><rect x="327.5" y="1030" width="33" height="11" rx="5.5" fill="#e2a06b" opacity="0.2"/><rect x="274.0" y="150" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="256" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="268" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="374" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="386" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="492" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="504" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="610" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="622" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="728" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="740" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="846" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="274.0" y="858" width="16" height="110" rx="9" fill="#d9905f" opacity="0.11"/><rect x="270.0" y="964" width="24" height="11" rx="5.5" fill="#e2a06b" opacity="0.15"/><rect x="387.5" y="70" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="176" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="188" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="294" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="306" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="412" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="424" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="530" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="542" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="648" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="660" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="766" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="778" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="884" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><rect x="387.5" y="896" width="13" height="110" rx="9" fill="#d9905f" opacity="0.09"/><rect x="383.5" y="1002" width="21" height="11" rx="5.5" fill="#e2a06b" opacity="0.13"/><g transform="translate(338,108) rotate(-26)" opacity="0.2"><path d="M0,0 Q 55,-13 122,0 Q 55,7 0,0" fill="#8ba876"/></g><g transform="translate(350,226) rotate(16)" opacity="0.16"><path d="M0,0 Q 46,-13 102,0 Q 46,7 0,0" fill="#8ba876"/></g><g transform="translate(338,348) rotate(-16)" opacity="0.18"><path d="M0,0 Q 50,-13 112,0 Q 50,7 0,0" fill="#8ba876"/></g><g transform="translate(276,300) rotate(-30)" opacity="0.16"><path d="M0,0 Q 41,-13 92,0 Q 41,7 0,0" fill="#8ba876"/></g><g transform="translate(286,428) rotate(15)" opacity="0.14"><path d="M0,0 Q 39,-13 86,0 Q 39,7 0,0" fill="#8ba876"/></g><g transform="translate(390,190) rotate(-22)" opacity="0.15"><path d="M0,0 Q 38,-13 84,0 Q 38,7 0,0" fill="#8ba876"/></g><g transform="translate(342,470) rotate(48)" opacity="0.13"><path d="M0,0 Q 43,-13 96,0 Q 43,7 0,0" fill="#8ba876"/></g><g transform="translate(280,560) rotate(-40)" opacity="0.13"><path d="M0,0 Q 40,-13 88,0 Q 40,7 0,0" fill="#8ba876"/></g></svg></div>
 <header>
-  <button class="icobtn" id="burger" type="button" aria-label="মেনু">
+  <button class="icobtn" id="burger" type="button" aria-label="Menu" data-i18n-aria="ariaMenu">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
   </button>
   <div class="modelwrap">
-    <button id="modelBtn" type="button" aria-label="মডেল বাছাই"><span id="modelName">Bash Lite</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button id="modelBtn" type="button" aria-label="Choose model" data-i18n-aria="ariaModel"><span id="modelName">Bash Lite</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
     <div id="modelMenu" hidden></div>
   </div>
-  <button class="icobtn" id="newtop" type="button" aria-label="নতুন চ্যাট">
+  <button class="icobtn" id="newtop" type="button" aria-label="New chat" data-i18n-aria="ariaNew">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5h16"/><path d="M16.9 4.1a1.85 1.85 0 012.6 0l.5.5a1.85 1.85 0 010 2.6L8.2 19l-3.7 1 1-3.7L16.9 4.1z"/><path d="M14.6 6.4l2.6 2.6"/></svg>
   </button>
-  <button class="icobtn" id="dots" type="button" aria-label="আরও">
+  <button class="icobtn" id="dots" type="button" aria-label="More" data-i18n-aria="ariaMore">
     <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.15"/><circle cx="12" cy="12" r="2.15"/><circle cx="12" cy="19" r="2.15"/></svg>
   </button>
   <div id="acct">
-    <div class="who" id="acctname">লগইন করা নেই</div>
-    <div class="sub">বাকি ফ্রি মেসেজ</div>
+    <div class="who" id="acctname" data-i18n="notSignedIn">Not signed in</div>
+    <div class="sub" data-i18n="freeLeft">Free messages left</div>
     <div id="acctrem"></div>
-    <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।</p>
-    <p class="note" style="margin-top:10px"><a href="/privacy">প্রাইভেসি নীতি</a> · <a href="/terms">শর্তাবলি</a></p>
-    <button id="logout" type="button">লগআউট</button>
+    <p class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> <span data-i18n="acctNote">Demo mode — this app is still being built. Chat Bash can make mistakes, so double-check important information.</span></p>
+    <p class="note" style="margin-top:10px" data-i18n-html="acctLegal"><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms</a></p>
+    <button id="logout" type="button" data-i18n="logout">Log out</button>
   </div>
 </header>
-<div id="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।</div>
+<div id="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 4.4c.4-.8 1.4-.8 1.8 0l8.3 14.2c.4.8-.1 1.7-1 1.7H3.8c-.9 0-1.4-.9-1-1.7L11.1 4.4Z"/><path d="M12 10.2v4.1"/><circle cx="12" cy="17.3" r=".6" fill="currentColor" stroke="none"/></svg> <span data-i18n="demoText">Demo mode — this app is still being built. Answers may sometimes be wrong or a little slow.</span></div>
 <div id="chat">
-  <div class="msg a">আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।</div>
+  <div class="msg a" data-i18n="greeting">Assalamu Alaikum! I'm Chat Bash. Ask me anything about Bangladesh — history, food, sports, travel, today's news or prices — I'll try to give the right answer.</div>
 </div>
 <div class="chips" id="chips">
-  <button class="chip" type="button">বাংলাদেশের জাতীয় মাছ কোনটি?</button>
-  <button class="chip" type="button">পদ্মা সেতু সম্পর্কে বলো</button>
-  <button class="chip" type="button">আজ ঢাকার আবহাওয়া কেমন?</button>
-  <button class="chip" type="button">কক্সবাজার ভ্রমণের টিপস দাও</button>
+  <button class="chip" type="button" data-i18n="chip1">What is the national fish of Bangladesh?</button>
+  <button class="chip" type="button" data-i18n="chip2">Tell me about the Padma Bridge</button>
+  <button class="chip" type="button" data-i18n="chip3">What's the weather in Dhaka today?</button>
+  <button class="chip" type="button" data-i18n="chip4">Cox's Bazar travel tips, please</button>
 </div>
 <div id="limitcard" hidden>
-  <div class="lt">এই মডেলের সাপ্তাহিক লিমিট শেষ</div>
+  <div class="lt" data-i18n="limitTitle">This model's limit is over</div>
   <div class="ls" id="limitSub"></div>
-  <button id="limitBtn" type="button">অন্য মডেল ব্যবহার করো</button>
+  <button id="limitBtn" type="button" data-i18n="useOther">Use another model</button>
 </div>
 <form id="f">
-  <button class="icobtn" id="plus" type="button" aria-label="আরও অপশন">
+  <button class="icobtn" id="plus" type="button" aria-label="More options" data-i18n-aria="ariaMoreOpts">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
   </button>
-  <button class="icobtn" id="thembtn" type="button" aria-label="থিম বদলাও">
+  <button class="icobtn" id="thembtn" type="button" aria-label="Change theme" data-i18n-aria="ariaTheme">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.9-.9 1.9-1.9 0-.8-.5-1.3-.5-2.1 0-1 .8-1.7 1.9-1.7H17a4.5 4.5 0 004.5-4.5C21.5 6.4 17.2 3.5 12 3.5z"/><circle cx="7.6" cy="10.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.4" cy="6.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg>
   </button>
-  <input id="q" placeholder="Chat Bash-কে প্রশ্ন করো…" autocomplete="off">
-  <button class="icobtn" id="mic" type="button" aria-label="ভয়েসে লেখো">
+  <button class="icobtn" id="langbtn" type="button" aria-label="Language" data-i18n-aria="ariaLang">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><ellipse cx="12" cy="12" rx="3.9" ry="8.6"/><path d="M3.6 9.2h16.8M3.6 14.8h16.8"/></svg>
+  </button>
+  <input id="q" placeholder="Ask Chat Bash…" data-i18n-ph="askPh" autocomplete="off">
+  <button class="icobtn" id="mic" type="button" aria-label="Voice input" data-i18n-aria="ariaMic">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0013 0M12 18v3M8.5 21h7"/></svg>
   </button>
-  <button id="send" type="submit" aria-label="পাঠাও">
+  <button id="send" type="submit" aria-label="Send" data-i18n-aria="ariaSend">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.5v-13M6 11l6-6 6 6"/></svg>
   </button>
 </form>
-<p class="fineprint">Chat Bash ভুল করতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও। সম্পূর্ণ ফ্রি প্রযুক্তিতে তৈরি, কোনো কোটি টাকার প্রকল্প নয়।</p>
+<p class="fineprint" data-i18n="fineprint">Chat Bash can make mistakes — double-check important information. Built entirely with free technology, not a multi-crore project.</p>
 
 <div id="plusmenu">
-  <button type="button" id="pm-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট</button>
-  <button type="button" id="pm-hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.9 2"/></svg> আগের চ্যাটগুলো</button>
-  <button type="button" id="pm-model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 8h12.7M13.2 4.4 16.8 8l-3.6 3.6M20.2 16H7.5M10.8 12.4 7.2 16l3.6 3.6"/></svg> অন্য মডেল ব্যবহার করো</button>
+  <button type="button" id="pm-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> <span data-i18n="pmNew">New chat</span></button>
+  <button type="button" id="pm-hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.9 2"/></svg> <span data-i18n="pmHist">Previous chats</span></button>
+  <button type="button" id="pm-model"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 8h12.7M13.2 4.4 16.8 8l-3.6 3.6M20.2 16H7.5M10.8 12.4 7.2 16l3.6 3.6"/></svg> <span data-i18n="pmModel">Use another model</span></button>
 </div>
 
 <div id="thememenu">
-  <button type="button" data-th=""><span class="sw" style="background:linear-gradient(135deg,#7a2027,#38070d)"></span>লাল বাঁশ<span class="tk"></span></button>
-  <button type="button" data-th="cream"><span class="sw" style="background:linear-gradient(135deg,#f7f2e7 55%,#9e3a2e)"></span>ক্রিম<span class="tk"></span></button>
-  <button type="button" data-th="green"><span class="sw" style="background:linear-gradient(135deg,#12573c 55%,#d42a24)"></span>পতাকার সবুজ<span class="tk"></span></button>
+  <button type="button" data-th=""><span class="sw" style="background:linear-gradient(135deg,#7a2027,#38070d)"></span><span data-i18n="thRed">Red Bamboo</span><span class="tk"></span></button>
+  <button type="button" data-th="cream"><span class="sw" style="background:linear-gradient(135deg,#f7f2e7 55%,#9e3a2e)"></span><span data-i18n="thCream">Cream</span><span class="tk"></span></button>
+  <button type="button" data-th="green"><span class="sw" style="background:linear-gradient(135deg,#12573c 55%,#d42a24)"></span><span data-i18n="thGreen">Flag Green</span><span class="tk"></span></button>
+</div>
+
+<div id="langmenu">
+  <button type="button" data-lang="en"><span class="swtxt">EN</span>English<span class="tk"></span></button>
+  <button type="button" data-lang="bn"><span class="swtxt">বাং</span>বাংলা<span class="tk"></span></button>
 </div>
 
 <div id="scrim"></div>
 <aside id="drawer">
   <div class="dhead"><b><img class="dlogo" src="/icon-192.png" alt=""> Chat Bash</b>
-    <button class="icobtn" id="dclose" type="button" aria-label="বন্ধ করো">
+    <button class="icobtn" id="dclose" type="button" aria-label="Close" data-i18n-aria="ariaClose">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-  <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> নতুন চ্যাট শুরু করো</button>
-  <div class="dsec">সাম্প্রতিক চ্যাট</div>
+  <button id="newchat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 19.6l1-3.9L16.5 4.6a1.95 1.95 0 012.8 0l.1.1a1.95 1.95 0 010 2.8L8.3 18.6l-3.9 1Z"/><path d="M14.7 6.4l2.8 2.8"/></svg> <span data-i18n="newChatBtn">Start a new chat</span></button>
+  <div class="dsec" data-i18n="recent">Recent chats</div>
   <div id="histlist"></div>
   <div class="dfoot" id="dfoot" hidden>
     <div class="avatar" id="davatar">C</div>
@@ -858,25 +892,25 @@ PAGE = r"""<!DOCTYPE html>
 
 <div id="soonmodal" hidden>
   <div class="sm-card">
-    <div class="sm-t">এই মডেলটা এখনো শিখছে</div>
+    <div class="sm-t" data-i18n="soonTitle">This model is still learning</div>
     <p class="sm-b" id="soonBody"></p>
-    <button id="soonOk" type="button">বুঝেছি</button>
+    <button id="soonOk" type="button" data-i18n="gotIt">Got it</button>
   </div>
 </div>
 <div id="fullmodal" hidden>
   <div class="sm-card">
     <img src="/icon-192.png" alt="" style="width:54px;height:54px;border-radius:15px">
-    <div class="sm-t" style="margin-top:10px">সার্ভার ওভারলোড হয়ে গেছে</div>
-    <p class="sm-b">এই মুহূর্তে অনেক মানুষ একসাথে Chat Bash ব্যবহার করছে, তাই নতুন করে আর ঢোকা যাচ্ছে না। কেউ বের হলেই জায়গা খালি হবে — একটু পরে আবার চেষ্টা করো।</p>
-    <button id="fullRetry" type="button">আবার চেষ্টা করো</button>
+    <div class="sm-t" style="margin-top:10px" data-i18n="fullTitle">The server is overloaded</div>
+    <p class="sm-b" data-i18n="fullBody">A lot of people are using Chat Bash at the same time right now, so no new users can enter. As soon as someone leaves, a place will open up — please try again in a little while.</p>
+    <button id="fullRetry" type="button" data-i18n="tryAgain">Try again</button>
   </div>
 </div>
 <div id="breakmodal" hidden>
   <div class="sm-card">
     <img src="/icon-192.png" alt="" style="width:54px;height:54px;border-radius:15px">
-    <div class="sm-t" style="margin-top:10px">এই ঘণ্টার সময় শেষ</div>
-    <p class="sm-b" id="breakBody">সবাই যাতে সুযোগ পায়, তাই প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়।</p>
-    <button id="breakOk" type="button">আবার চেষ্টা করো</button>
+    <div class="sm-t" style="margin-top:10px" data-i18n="breakTitle">Time's up for this hour</div>
+    <p class="sm-b" id="breakBody" data-i18n="breakBody">So that everyone gets a chance, chatting is limited to 10 minutes per hour.</p>
+    <button id="breakOk" type="button" data-i18n="tryAgain">Try again</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -885,11 +919,11 @@ PAGE = r"""<!DOCTYPE html>
   <div class="card">
     <img class="lgo" src="/icon-192.png" alt="Chat Bash">
     <div class="lname">Chat Bash</div>
-    <button id="gbtn" type="button"><svg class="gicon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.2-6.9-5.1L1.3 17.2C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.1 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.3 6.8C.5 8.4 0 10.1 0 12s.5 3.6 1.3 5.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.8l3.8 2.9c1-2.9 3.7-5 6.9-5z"/></svg> Google দিয়ে লগইন</button>
-    <div class="lor"><span></span>অথবা<span></span></div>
-    <button id="gbtn2" type="button"><svg class="gicon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.2-6.9-5.1L1.3 17.2C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.1 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.3 6.8C.5 8.4 0 10.1 0 12s.5 3.6 1.3 5.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.8l3.8 2.9c1-2.9 3.7-5 6.9-5z"/></svg> Google দিয়ে অ্যাকাউন্ট খুলো</button>
+    <button id="gbtn" type="button"><svg class="gicon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.2-6.9-5.1L1.3 17.2C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.1 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.3 6.8C.5 8.4 0 10.1 0 12s.5 3.6 1.3 5.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.8l3.8 2.9c1-2.9 3.7-5 6.9-5z"/></svg> <span data-i18n="loginBtn">Log in with Google</span></button>
+    <div class="lor"><span></span><span data-i18n="orWord" style="flex:none">or</span><span></span></div>
+    <button id="gbtn2" type="button"><svg class="gicon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.2-6.9-5.1L1.3 17.2C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.1 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.3 6.8C.5 8.4 0 10.1 0 12s.5 3.6 1.3 5.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.8l3.8 2.9c1-2.9 3.7-5 6.9-5z"/></svg> <span data-i18n="signupBtn">Sign up with Google</span></button>
     <p id="lerr"></p>
-    <p class="llegal">লগইন করলে তুমি আমাদের <a href="/terms">শর্তাবলি</a> ও <a href="/privacy">প্রাইভেসি নীতি</a> মেনে নিচ্ছো।</p>
+    <p class="llegal" data-i18n-html="legal">By logging in, you accept our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
   </div>
 </div>
 
@@ -903,8 +937,14 @@ const $=id=>document.getElementById(id);
 const chat=$('chat'),form=$('f'),q=$('q'),send=$('send'),mic=$('mic'),
       loginEl=$('login'),chipsEl=$('chips'),
       drawer=$('drawer'),scrim=$('scrim'),acct=$('acct'),plusmenu=$('plusmenu');
-const GREETING='আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।';
 let currentUser=null, remaining={}, pairs=[], currentId=null;
+let appSess=null, sessUser=null;
+try{ const sv=JSON.parse(localStorage.getItem('cb_appsess')||'null');
+  if(sv&&sv.token){ appSess=sv.token; sessUser={uid:sv.uid,email:sv.email||'',displayName:sv.name||''}; } }catch(e){}
+async function authTok(){ if(currentUser){ try{ return await currentUser.getIdToken(); }catch(e){ return ''; } } return appSess||''; }
+function setAppSession(d){ appSess=d.session; sessUser={uid:d.uid,email:d.email||'',displayName:d.name||''};
+  try{ localStorage.setItem('cb_appsess',JSON.stringify({token:d.session,uid:d.uid,email:d.email||'',name:d.name||''})); }catch(e){} }
+function clearAppSession(){ appSess=null; sessUser=null; try{ localStorage.removeItem('cb_appsess'); }catch(e){} }
 
 const IC={
  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21.5v-10l3.9-7c1.6-.3 3 1 2.8 2.6l-.6 4.4h5.9a2 2 0 012 2.4l-1.1 5.7a2 2 0 01-2 1.8H7.5"/><rect x="3" y="11.5" width="4.5" height="10" rx="1.2"/></svg>',
@@ -914,13 +954,80 @@ const IC={
  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5.5 15h-.7A1.8 1.8 0 013 13.2V4.8A1.8 1.8 0 014.8 3h8.4A1.8 1.8 0 0115 4.8v.7"/></svg>',
  speak:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.8v4.4h3.2L12 18.6V5.4L7.2 9.8H4z"/><path d="M15.2 9.6a3.8 3.8 0 010 4.8"/><path d="M17.9 7a7.8 7.8 0 010 10"/></svg>'};
 
-const MDESC={lite:'হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে',pro:'সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে',swift:'ঝটপট উত্তর — ছোট প্রশ্নে'};
+/* ---------------- i18n: English by default, Bengali on toggle ---------------- */
+const STR={
+en:{greeting:"Assalamu Alaikum! I'm Chat Bash. Ask me anything about Bangladesh — history, food, sports, travel, today's news or prices — I'll try to give the right answer.",
+chip1:"What is the national fish of Bangladesh?",chip2:"Tell me about the Padma Bridge",chip3:"What's the weather in Dhaka today?",chip4:"Cox's Bazar travel tips, please",
+askPh:"Ask Chat Bash…",thinking:"Thinking",
+demoText:"Demo mode — this app is still being built. Answers may sometimes be wrong or a little slow.",
+acctNote:"Demo mode — this app is still being built. Chat Bash can make mistakes, so double-check important information.",
+acctLegal:'<a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms</a>',
+legal:'By logging in, you accept our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.',
+fineprint:"Chat Bash can make mistakes — double-check important information. Built entirely with free technology, not a multi-crore project.",
+notSignedIn:"Not signed in",freeLeft:"Free messages left",logout:"Log out",
+pmNew:"New chat",pmHist:"Previous chats",pmModel:"Use another model",newChatBtn:"Start a new chat",recent:"Recent chats",
+thRed:"Red Bamboo",thCream:"Cream",thGreen:"Flag Green",soonPill:"Coming soon",soonTitle:"This model is still learning",gotIt:"Got it",
+fullTitle:"The server is overloaded",fullBody:"A lot of people are using Chat Bash at the same time right now, so no new users can enter. As soon as someone leaves, a place will open up — please try again in a little while.",tryAgain:"Try again",
+breakTitle:"Time's up for this hour",breakBody:"So that everyone gets a chance, chatting is limited to 10 minutes per hour.",breakBodyT:"So that everyone gets a chance, chatting is limited to 10 minutes per hour. You can chat again from {time}.",
+limitTitle:"This model's limit is over",useOther:"Use another model",allOut:"All models are out of limit",
+loginBtn:"Log in with Google",orWord:"or",signupBtn:"Sign up with Google",
+copied:"Copied",copyFail:"Couldn't copy",noListen:"Listening isn't available on this device",noVoice:"Voice input is not available in this browser — type your question",notHeard:"Couldn't hear that — try again",voiceFail:"Voice input didn't start",
+netErr:"Network problem",netRetry:"Network problem — please try again",failed:"Did not work — try again",somethingWrong:"Something went wrong.",loginExpired:"Your login has expired — log in again.",
+themeChanged:"Theme changed",langChanged:"Language changed",welcome:"Welcome! Your account has been created",modelWord:"Model",
+histEmpty:"No previous chats yet. Ask a question and your history will appear here.",newChatT:"New chat",
+fbUp:"Good answer",fbDown:"Bad answer",fbRegen:"Answer again",fbShare:"Share",fbCopy:"Copy",fbListen:"Listen",
+descLite:"Light & fast — for everyday questions",descPro:"The smartest — for hard questions",descSwift:"Quick answers — for small questions",
+loginWait:"Logging in — please wait…",codeExpired:"That login code has expired — tap sign-in again.",loginIncomplete:"Login didn't complete — please try again.",browserOpening:"Opening the browser — choose your account there…",loginFailed:"Login failed — please try again.",backToApp:"Back to the Chat Bash app",
+soonBody:"{name} is still being built. It is not fully ready to talk to people properly yet. It will be ready very soon — though by \"soon\" we could mean ten or twelve years, or even two or three decades.",
+ariaMenu:"Menu",ariaModel:"Choose model",ariaNew:"New chat",ariaMore:"More",ariaMoreOpts:"More options",ariaTheme:"Change theme",ariaLang:"Language",ariaMic:"Voice input",ariaSend:"Send",ariaClose:"Close"},
+bn:{greeting:"আসসালামু আলাইকুম! আমি Chat Bash। বাংলাদেশ নিয়ে যেকোনো প্রশ্ন করো — ইতিহাস, খাবার, খেলা, ভ্রমণ, আজকের খবর বা দাম — চেষ্টা করব সঠিক উত্তর দিতে।",
+chip1:"বাংলাদেশের জাতীয় মাছ কোনটি?",chip2:"পদ্মা সেতু সম্পর্কে বলো",chip3:"আজ ঢাকার আবহাওয়া কেমন?",chip4:"কক্সবাজার ভ্রমণের টিপস দাও",
+askPh:"Chat Bash-কে প্রশ্ন করো…",thinking:"ভাবছি",
+demoText:"ডেমো মোড — এই অ্যাপটা এখনো তৈরির কাজ চলছে। মাঝে মাঝে ভুল উত্তর বা একটু দেরি হতে পারে।",
+acctNote:"ডেমো মোড — অ্যাপটা এখনো তৈরির কাজ চলছে। Chat Bash ভুল করতে পারে, গুরুত্বপূর্ণ তথ্য যাচাই করে নিও।",
+acctLegal:'<a href="/privacy">প্রাইভেসি নীতি</a> · <a href="/terms">শর্তাবলি</a>',
+legal:'লগইন করলে তুমি আমাদের <a href="/terms">শর্তাবলি</a> ও <a href="/privacy">প্রাইভেসি নীতি</a> মেনে নিচ্ছো।',
+fineprint:"Chat Bash ভুল করতে পারে — গুরুত্বপূর্ণ তথ্য যাচাই করে নিও। সম্পূর্ণ ফ্রি প্রযুক্তিতে তৈরি, কোনো কোটি টাকার প্রকল্প নয়।",
+notSignedIn:"লগইন করা নেই",freeLeft:"বাকি ফ্রি মেসেজ",logout:"লগআউট",
+pmNew:"নতুন চ্যাট",pmHist:"আগের চ্যাটগুলো",pmModel:"অন্য মডেল ব্যবহার করো",newChatBtn:"নতুন চ্যাট শুরু করো",recent:"সাম্প্রতিক চ্যাট",
+thRed:"লাল বাঁশ",thCream:"ক্রিম",thGreen:"পতাকার সবুজ",soonPill:"শীঘ্রই আসছে",soonTitle:"এই মডেলটা এখনো শিখছে",gotIt:"বুঝেছি",
+fullTitle:"সার্ভার ওভারলোড হয়ে গেছে",fullBody:"এই মুহূর্তে অনেক মানুষ একসাথে Chat Bash ব্যবহার করছে, তাই নতুন করে আর ঢোকা যাচ্ছে না। কেউ বের হলেই জায়গা খালি হবে — একটু পরে আবার চেষ্টা করো।",tryAgain:"আবার চেষ্টা করো",
+breakTitle:"এই ঘণ্টার সময় শেষ",breakBody:"সবাই যাতে সুযোগ পায়, তাই প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়।",breakBodyT:"সবাই যাতে সুযোগ পায়, তাই প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়। আবার কথা বলা যাবে {time} থেকে।",
+limitTitle:"এই মডেলের লিমিট শেষ",useOther:"অন্য মডেল ব্যবহার করো",allOut:"সব মডেলের লিমিট শেষ",
+loginBtn:"Google দিয়ে লগইন",orWord:"অথবা",signupBtn:"Google দিয়ে অ্যাকাউন্ট খুলো",
+copied:"কপি হয়েছে",copyFail:"কপি হয়নি",noListen:"এই ডিভাইসে শোনানোর সুবিধা নেই",noVoice:"এই ব্রাউজারে ভয়েস ইনপুট নেই — লিখে প্রশ্ন করো",notHeard:"শোনা যায়নি, আবার চেষ্টা করো",voiceFail:"ভয়েস ইনপুট চালু হয়নি",
+netErr:"নেটওয়ার্কে সমস্যা",netRetry:"নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।",failed:"হয়নি, আবার চেষ্টা করো",somethingWrong:"কিছু একটা সমস্যা হয়েছে।",loginExpired:"লগইনের মেয়াদ শেষ — আবার লগইন করো।",
+themeChanged:"থিম বদলানো হয়েছে",langChanged:"ভাষা বদলানো হয়েছে",welcome:"স্বাগতম! তোমার অ্যাকাউন্ট তৈরি হয়ে গেছে",modelWord:"মডেল",
+histEmpty:"এখনো কোনো আগের চ্যাট নেই। প্রশ্ন করলেই এখানে হিস্ট্রি জমা হবে।",newChatT:"নতুন চ্যাট",
+fbUp:"ভালো লেগেছে",fbDown:"ভালো লাগেনি",fbRegen:"আবার উত্তর দাও",fbShare:"শেয়ার",fbCopy:"কপি",fbListen:"শুনুন",
+descLite:"হালকা ও দ্রুত — প্রতিদিনের প্রশ্নে",descPro:"সবচেয়ে বুদ্ধিমান — কঠিন প্রশ্নে",descSwift:"ঝটপট উত্তর — ছোট প্রশ্নে",
+loginWait:"লগইন হচ্ছে — একটু অপেক্ষা করো…",codeExpired:"লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।",loginIncomplete:"লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।",browserOpening:"ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…",loginFailed:"লগইন হয়নি — আবার চেষ্টা করো।",backToApp:"Chat Bash অ্যাপে ফিরে যাও",
+soonBody:'{name} এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।',
+ariaMenu:"মেনু",ariaModel:"মডেল বাছাই",ariaNew:"নতুন চ্যাট",ariaMore:"আরও",ariaMoreOpts:"আরও অপশন",ariaTheme:"থিম বদলাও",ariaLang:"ভাষা",ariaMic:"ভয়েসে লেখো",ariaSend:"পাঠাও",ariaClose:"বন্ধ করো"}};
+let curLang=(()=>{ try{ const l=localStorage.getItem('cb_lang'); return l==='bn'?'bn':'en'; }catch(e){ return 'en'; } })();
+function tr(k){ return (STR[curLang]&&STR[curLang][k])||STR.en[k]||k; }
+function locTag(){ return curLang==='bn'?'bn-BD':'en-GB'; }
+function descOf(k){ return k==='lite'?tr('descLite'):k==='pro'?tr('descPro'):tr('descSwift'); }
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent=tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{ el.innerHTML=tr(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{ el.placeholder=tr(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>{ el.setAttribute('aria-label',tr(el.dataset.i18nAria)); });
+  document.documentElement.lang=(curLang==='bn'?'bn':'en');
+  document.querySelectorAll('.mopt').forEach(o=>{ const md=o.querySelector('.md'); if(md) md.textContent=descOf(o.dataset.key);
+    const sn=o.querySelector('.soon'); if(sn) sn.textContent=tr('soonPill'); });
+  document.querySelectorAll('#langmenu button').forEach(b=>b.classList.toggle('on',b.dataset.lang===curLang));
+}
+function setLang(l){ curLang=(l==='bn')?'bn':'en';
+  try{ localStorage.setItem('cb_lang',curLang); }catch(e){}
+  document.cookie='cb_lang='+curLang+';path=/;max-age=31536000;SameSite=Lax';
+  applyLang(); if(typeof renderAcct==='function') renderAcct(); if(typeof renderHist==='function') renderHist(); }
 let curModel='__DEFAULT_MODEL__';
 const modelMenu=$('modelMenu');
 MODELS.forEach(m=>{
   const b=document.createElement('button'); b.type='button'; b.className='mopt'; b.dataset.key=m.key;
-  b.innerHTML='<span class="mt"><span class="mn"></span><span class="md"></span></span>'+(m.soon?'<span class="soon">শীঘ্রই আসছে</span>':'<span class="radio"></span>');
-  b.querySelector('.mn').textContent=m.name; b.querySelector('.md').textContent=MDESC[m.key]||'';
+  b.innerHTML='<span class="mt"><span class="mn"></span><span class="md"></span></span>'+(m.soon?'<span class="soon">'+tr('soonPill')+'</span>':'<span class="radio"></span>');
+  b.querySelector('.mn').textContent=m.name; b.querySelector('.md').textContent=descOf(m.key);
   b.onclick=()=>{ modelMenu.hidden=true; if(m.soon){ openSoon(m); return; } setModel(m.key); };
   modelMenu.appendChild(b);
 });
@@ -940,18 +1047,18 @@ function loadChats(){try{return JSON.parse(localStorage.getItem('cb_chats')||'[]
 function storeChats(c){try{localStorage.setItem('cb_chats',JSON.stringify(c.slice(0,30)));}catch(e){}}
 let syncTimer=null;
 async function syncHistoryUp(){
-  if(!currentUser) return;
+  if(!currentUser&&!sessUser) return;
   try{
-    const t=await currentUser.getIdToken();
+    const t=await authTok();
     await fetch('/history/save',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({idToken:t,chats:loadChats()})});
   }catch(e){}
 }
 function queueSync(){ clearTimeout(syncTimer); syncTimer=setTimeout(syncHistoryUp,900); }
 async function syncHistoryDown(){
-  if(!currentUser) return;
+  if(!currentUser&&!sessUser) return;
   try{
-    const t=await currentUser.getIdToken();
+    const t=await authTok();
     const r=await fetch('/history/get',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({idToken:t})});
     const d=await r.json(); if(!d||!Array.isArray(d.chats)) return;
@@ -971,14 +1078,14 @@ function persist(){
 }
 function renderHist(){
   const all=loadChats(), list=$('histlist'); list.innerHTML='';
-  if(!all.length){ list.innerHTML='<div class="hempty">এখনো কোনো আগের চ্যাট নেই। প্রশ্ন করলেই এখানে হিস্ট্রি জমা হবে।</div>'; return; }
+  if(!all.length){ list.innerHTML='<div class="hempty">'+tr('histEmpty')+'</div>'; return; }
   all.forEach(c=>{
     const d=document.createElement('div'); d.className='hitem'+(c.id===currentId?' cur':'');
     const ic=document.createElement('span'); ic.className='hic';
     ic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8.4 8.4 0 01-8.4 8.3c-1.3 0-2.6-.3-3.7-.8L3.5 20l1-4.8a8.3 8.3 0 01-1-3.9 8.4 8.4 0 018.6-8.3 8.4 8.4 0 018.4 8.6z"/></svg>';
     const meta=document.createElement('div'); meta.className='hmeta';
-    const t=document.createElement('div'); t.className='t'; t.textContent=(c.pairs&&c.pairs[0]?c.pairs[0].u:'নতুন চ্যাট');
-    const s=document.createElement('div'); s.className='d'; s.textContent=new Date(c.ts).toLocaleDateString('bn-BD',{day:'numeric',month:'long'})+' · '+(c.pairs?c.pairs.length:0)+'টি প্রশ্ন';
+    const t=document.createElement('div'); t.className='t'; t.textContent=(c.pairs&&c.pairs[0]?c.pairs[0].u:tr('newChatT'));
+    const s=document.createElement('div'); s.className='d'; s.textContent=new Date(c.ts).toLocaleDateString(locTag(),{day:'numeric',month:'long'})+' · '+(c.pairs?c.pairs.length:0)+(curLang==='bn'?'টি প্রশ্ন':' questions');
     meta.appendChild(t); meta.appendChild(s);
     d.appendChild(ic); d.appendChild(meta);
     d.onclick=()=>{ loadChat(c); closeDrawer(); };
@@ -996,7 +1103,7 @@ function loadChat(c){
 function focusQ(){ if(window.matchMedia && matchMedia('(pointer:fine)').matches) q.focus(); }
 function newChat(){
   pairs=[]; currentId=null; chat.innerHTML='';
-  const g=document.createElement('div'); g.className='msg a'; g.textContent=GREETING; chat.appendChild(g);
+  const g=document.createElement('div'); g.className='msg a'; g.dataset.i18n='greeting'; g.textContent=tr('greeting'); chat.appendChild(g);
   chipsEl.style.display='flex'; q.value=''; syncSend(); focusQ(); renderHist();
 }
 
@@ -1048,18 +1155,18 @@ function attachActions(el,i){
   const mk=(svg,label,fn,fb)=>{const b=document.createElement('button');b.type='button';b.className='icobtn';
     b.innerHTML=svg;b.title=label;b.setAttribute('aria-label',label);if(fb)b.dataset.fb=fb;
     b.onclick=()=>fn(b);return b;};
-  row.appendChild(mk(IC.up,'ভালো লেগেছে',b=>{pairs[i].f=pairs[i].f==='up'?'':'up';persist();markFb(el,i);},'up'));
-  row.appendChild(mk(IC.down,'ভালো লাগেনি',b=>{pairs[i].f=pairs[i].f==='down'?'':'down';persist();markFb(el,i);},'down'));
-  row.appendChild(mk(IC.regen,'আবার উত্তর দাও',b=>regen(i,el,b)));
-  row.appendChild(mk(IC.share,'শেয়ার',()=>shareText(pairs[i].a)));
-  row.appendChild(mk(IC.copy,'কপি',()=>copyText(pairs[i].a)));
-  row.appendChild(mk(IC.speak,'শুনুন',b=>speak(pairs[i].a,b)));
+  row.appendChild(mk(IC.up,tr('fbUp'),b=>{pairs[i].f=pairs[i].f==='up'?'':'up';persist();markFb(el,i);},'up'));
+  row.appendChild(mk(IC.down,tr('fbDown'),b=>{pairs[i].f=pairs[i].f==='down'?'':'down';persist();markFb(el,i);},'down'));
+  row.appendChild(mk(IC.regen,tr('fbRegen'),b=>regen(i,el,b)));
+  row.appendChild(mk(IC.share,tr('fbShare'),()=>shareText(pairs[i].a)));
+  row.appendChild(mk(IC.copy,tr('fbCopy'),()=>copyText(pairs[i].a)));
+  row.appendChild(mk(IC.speak,tr('fbListen'),b=>speak(pairs[i].a,b)));
   el.appendChild(row);
 }
 function copyText(t){
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('কপি হয়েছে')).catch(()=>toast('কপি হয়নি')); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast(tr('copied'))).catch(()=>toast(tr('copyFail'))); }
   else{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
-        try{document.execCommand('copy'); toast('কপি হয়েছে');}catch(e){toast('কপি হয়নি');} ta.remove(); }
+        try{document.execCommand('copy'); toast(tr('copied'));}catch(e){toast(tr('copyFail'));} ta.remove(); }
 }
 function shareText(t){
   if(navigator.share){ navigator.share({text:t}).catch(()=>{}); }
@@ -1067,17 +1174,17 @@ function shareText(t){
 }
 let speaking=false;
 function speak(t,btn){
-  if(!('speechSynthesis' in window)){ toast('এই ডিভাইসে শোনানোর সুবিধা নেই'); return; }
+  if(!('speechSynthesis' in window)){ toast(tr('noListen')); return; }
   if(speaking){ speechSynthesis.cancel(); speaking=false; return; }
   t=t.replace(/\*\*/g,'').replace(/[*#`]/g,'');
-  const u=new SpeechSynthesisUtterance(t); u.lang='bn-BD';
+  const u=new SpeechSynthesisUtterance(t); u.lang=/[\u0980-\u09FF]/.test(t)?'bn-BD':'en-US';
   u.onend=()=>{speaking=false;}; u.onerror=()=>{speaking=false;};
   speechSynthesis.speak(u); speaking=true;
 }
 async function ask(text,histPairs){
-  let token=''; if(currentUser) token=await currentUser.getIdToken();
+  const token=await authTok();
   const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message:text,history:histPairs.map(p=>[p.u,p.a]),model:curModel,idToken:token})});
+    body:JSON.stringify({message:text,history:histPairs.map(p=>[p.u,p.a]),model:curModel,idToken:token,lang:curLang})});
   return {status:r.status,data:await r.json()};
 }
 async function regen(i,el,btn){
@@ -1085,32 +1192,32 @@ async function regen(i,el,btn){
   const old=pairs[i].a; btn.disabled=true;
   const txtEl=el.querySelector('.txt');
   el.classList.add('dots');
-  if(txtEl) txtEl.textContent='ভাবছি…';
+  if(txtEl) txtEl.textContent=tr('thinking')+'…';
   try{
     const {status,data}=await ask(pairs[i].u,pairs.slice(0,i));
     el.classList.remove('dots');
     if(status===200&&data.reply){ pairs[i].a=data.reply;
       if(data.remaining){remaining=data.remaining; renderAcct();}
       typeReply(el,data.reply,()=>persist()); }
-    else{ setRich(el,old); if(data.error==='session_over'){ admitted=false; showBreak(data.resume); } else toast(data.reply||'হয়নি, আবার চেষ্টা করো'); }
-  }catch(e){ el.classList.remove('dots'); setRich(el,old); toast('নেটওয়ার্কে সমস্যা'); }
+    else{ setRich(el,old); if(data.error==='session_over'){ admitted=false; showBreak(data.resume); } else toast(data.reply||tr('failed')); }
+  }catch(e){ el.classList.remove('dots'); setRich(el,old); toast(tr('netErr')); }
   btn.disabled=false;
 }
 
 /* ---------------- account / menus ---------------- */
 function nextReset(){ const step=2*24*3600*1000; const ts=(Math.floor(Date.now()/step)+1)*step;
-  return new Date(ts).toLocaleDateString('bn-BD',{weekday:'long',day:'numeric',month:'long'}); }
+  return new Date(ts).toLocaleDateString(locTag(),{weekday:'long',day:'numeric',month:'long'}); }
 function checkLimit(){ const card=$('limitcard'); if(!card) return;
   const r=remaining[curModel]; const out=(r!==undefined&&r<=0);
   card.hidden=!out; if(!out) return;
   const m=MODELS.find(x=>x.key===curModel);
-  $('limitSub').textContent=(m?m.name:'এই মডেল')+'-এর এই পর্বের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextReset()+' থেকে।';
+  $('limitSub').textContent=curLang==='bn'?(m?m.name:'এই মডেল')+'-এর এই পর্বের ফ্রি মেসেজ শেষ হয়ে গেছে। আবার পাওয়া যাবে '+nextReset()+' থেকে।':(m?m.name:'This model')+"'s free messages for this round are over. Available again from "+nextReset()+'.';
   const alt=MODELS.find(x=>x.key!==curModel&&!x.soon&&(remaining[x.key]===undefined||remaining[x.key]>0));
   const btn=$('limitBtn');
-  if(alt){ btn.disabled=false; btn.textContent=alt.name+' ব্যবহার করো'; btn.onclick=()=>{ setModel(alt.key); toast('মডেল: '+alt.name); }; }
-  else{ btn.disabled=true; btn.textContent='সব মডেলের লিমিট শেষ'; btn.onclick=null; } }
+  if(alt){ btn.disabled=false; btn.textContent=curLang==='bn'?alt.name+' ব্যবহার করো':'Use '+alt.name; btn.onclick=()=>{ setModel(alt.key); toast(tr('modelWord')+': '+alt.name); }; }
+  else{ btn.disabled=true; btn.textContent=tr('allOut'); btn.onclick=null; } }
 function openSoon(m){
-  $('soonBody').textContent=m.name+' এখনো তৈরির কাজ চলছে। এটি এখনো মানুষের সাথে ঠিকমতো কথা বলার জন্য পুরোপুরি তৈরি না। খুব দ্রুতই তৈরি করা হবে — তবে "দ্রুত" বলতে দশ-বারো বছরও লাগতে পারে, কিংবা দুই-তিন যুগও লেগে যেতে পারে।';
+  $('soonBody').textContent=tr('soonBody').replace('{name}',m.name);
   $('soonmodal').hidden=false;
 }
 $('soonOk').onclick=()=>{ $('soonmodal').hidden=true; };
@@ -1119,30 +1226,34 @@ function renderAcct(){
   const box=$('acctrem'); box.innerHTML='';
   MODELS.forEach(m=>{ const r=remaining[m.key];
     const line=document.createElement('div'); line.className='remline';
-    line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?('দুই দিনে '+m.cap+'টি'):('বাকি '+r+' / '+m.cap))+'</span>';
+    line.innerHTML='<span>'+m.name+'</span><span>'+(r===undefined?(curLang==='bn'?'দুই দিনে '+m.cap+'টি':m.cap+' every 2 days'):(curLang==='bn'?'বাকি '+r+' / '+m.cap:r+' / '+m.cap+' left'))+'</span>';
     box.appendChild(line); });
-  if(currentUser){ $('acctname').textContent=currentUser.displayName||currentUser.email||'';
-    const nm=currentUser.displayName||currentUser.email||'';
-    $('dname').textContent=nm; $('dmail').textContent=currentUser.email||'';
+  const who=currentUser||sessUser;
+  if(who){ $('acctname').textContent=who.displayName||who.email||'';
+    const nm=who.displayName||who.email||'';
+    $('dname').textContent=nm; $('dmail').textContent=who.email||'';
     $('davatar').textContent=(nm.trim().charAt(0)||'C').toUpperCase(); $('dfoot').hidden=false;
     $('logout').style.display='block'; }
-  else{ $('acctname').textContent='লগইন করা নেই'; $('dfoot').hidden=true; $('logout').style.display='none'; }
+  else{ $('acctname').textContent=tr('notSignedIn'); $('dfoot').hidden=true; $('logout').style.display='none'; }
   checkLimit();
 }
-function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); }
+function closeMenus(){ acct.classList.remove('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); $('langmenu').classList.remove('open'); }
 const THEME_BG={'':'#38070d','cream':'#f7f2e7','green':'#07271b'};
 function setTheme(t){ if(t) document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme;
   try{ localStorage.setItem('cb_theme',t); }catch(e){}
   const mc=document.querySelector('meta[name="theme-color"]'); if(mc) mc.content=THEME_BG[t]||'#38070d';
   document.querySelectorAll('#thememenu button').forEach(b=>b.classList.toggle('on',b.dataset.th===t)); }
 setTheme((()=>{ try{ return localStorage.getItem('cb_theme')||''; }catch(e){ return ''; } })());
-$('thembtn').onclick=e=>{ e.stopPropagation(); const m=$('thememenu'); m.classList.toggle('open'); plusmenu.classList.remove('open'); acct.classList.remove('open'); };
-document.querySelectorAll('#thememenu button').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); $('thememenu').classList.remove('open'); toast('থিম বদলানো হয়েছে'); }; });
-$('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); };
-$('logout').onclick=async()=>{ closeMenus(); admitted=false; if(presTimer){clearInterval(presTimer); presTimer=null;} $('fullmodal').hidden=true; $('breakmodal').hidden=true; if(AUTH_ON){ try{ const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication; if(FA) await FA.signOut(); }catch(e){} firebase.auth().signOut(); } };
+$('thembtn').onclick=e=>{ e.stopPropagation(); const m=$('thememenu'); m.classList.toggle('open'); plusmenu.classList.remove('open'); acct.classList.remove('open'); $('langmenu').classList.remove('open'); };
+document.querySelectorAll('#thememenu button').forEach(b=>{ b.onclick=()=>{ setTheme(b.dataset.th); $('thememenu').classList.remove('open'); toast(tr('themeChanged')); }; });
+$('langbtn').onclick=e=>{ e.stopPropagation(); const m=$('langmenu'); m.classList.toggle('open'); plusmenu.classList.remove('open'); acct.classList.remove('open'); $('thememenu').classList.remove('open'); };
+document.querySelectorAll('#langmenu button').forEach(b=>{ b.onclick=()=>{ setLang(b.dataset.lang); $('langmenu').classList.remove('open'); toast(tr('langChanged')); }; });
+$('dots').onclick=e=>{ e.stopPropagation(); renderAcct(); acct.classList.toggle('open'); plusmenu.classList.remove('open'); $('thememenu').classList.remove('open'); $('langmenu').classList.remove('open'); };
+$('logout').onclick=async()=>{ closeMenus(); admitted=false; if(presTimer){clearInterval(presTimer); presTimer=null;} $('fullmodal').hidden=true; $('breakmodal').hidden=true; clearAppSession(); if(!currentUser){ loginEl.style.display='flex'; renderAcct(); } if(AUTH_ON){ try{ const FA=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.FirebaseAuthentication; if(FA) await FA.signOut(); }catch(e){} firebase.auth().signOut(); } };
 document.addEventListener('click',e=>{ if(!acct.contains(e.target)&&e.target!==$('dots')) acct.classList.remove('open');
   if(!plusmenu.contains(e.target)&&e.target!==$('plus')&&!$('plus').contains(e.target)) plusmenu.classList.remove('open');
-  const tm=$('thememenu'); if(!tm.contains(e.target)&&e.target!==$('thembtn')&&!$('thembtn').contains(e.target)) tm.classList.remove('open'); });
+  const tm=$('thememenu'); if(!tm.contains(e.target)&&e.target!==$('thembtn')&&!$('thembtn').contains(e.target)) tm.classList.remove('open');
+  const lm=$('langmenu'); if(lm&&!lm.contains(e.target)&&e.target!==$('langbtn')&&!$('langbtn').contains(e.target)) lm.classList.remove('open'); });
 
 /* ---------------- drawer ---------------- */
 function openDrawer(){ renderHist(); drawer.classList.add('on'); scrim.classList.add('on'); }
@@ -1152,12 +1263,12 @@ $('newchat').onclick=()=>{ newChat(); closeDrawer(); };
 $('newtop').onclick=()=>{ newChat(); };
 
 /* ---------------- plus menu ---------------- */
-$('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); $('thememenu').classList.remove('open'); };
+$('plus').onclick=e=>{ e.stopPropagation(); plusmenu.classList.toggle('open'); acct.classList.remove('open'); $('thememenu').classList.remove('open'); $('langmenu').classList.remove('open'); };
 $('pm-new').onclick=()=>{ closeMenus(); newChat(); };
 $('pm-hist').onclick=()=>{ closeMenus(); openDrawer(); };
 $('pm-model').onclick=()=>{ closeMenus(); let i=MODELS.findIndex(m=>m.key===curModel);
   for(let n=0;n<MODELS.length;n++){ i=(i+1)%MODELS.length; if(!MODELS[i].soon) break; }
-  setModel(MODELS[i].key); toast('মডেল: '+MODELS[i].name); focusQ(); };
+  setModel(MODELS[i].key); toast(tr('modelWord')+': '+MODELS[i].name); focusQ(); };
 
 /* ---------------- chips ---------------- */
 document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ q.value=c.textContent; form.requestSubmit(); });
@@ -1167,15 +1278,15 @@ function syncSend(){ const has=q.value.trim().length>0; send.style.display=has?'
 q.addEventListener('input',syncSend); syncSend();
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 mic.onclick=()=>{
-  if(!SR){ toast('এই ব্রাউজারে ভয়েস ইনপুট নেই — লিখে প্রশ্ন করো'); return; }
+  if(!SR){ toast(tr('noVoice')); return; }
   try{
-    const r=new SR(); r.lang='bn-BD'; r.interimResults=false;
+    const r=new SR(); r.lang=curLang==='bn'?'bn-BD':'en-US'; r.interimResults=false;
     mic.classList.add('rec');
     r.onresult=e=>{ q.value=e.results[0][0].transcript; syncSend(); };
     r.onend=()=>mic.classList.remove('rec');
-    r.onerror=()=>{ mic.classList.remove('rec'); toast('শোনা যায়নি, আবার চেষ্টা করো'); };
+    r.onerror=()=>{ mic.classList.remove('rec'); toast(tr('notHeard')); };
     r.start();
-  }catch(e){ toast('ভয়েস ইনপুট চালু হয়নি'); }
+  }catch(e){ toast(tr('voiceFail')); }
 };
 
 /* --------- browser sign-in hands the session to the app (deep link) --------- */
@@ -1192,7 +1303,7 @@ async function maybeHandoff(){
     const link='chatbash://login?code='+d.code;
     const div=document.createElement('div');
     div.style.cssText='position:fixed;inset:0;background:rgba(20,2,4,.88);display:flex;align-items:center;justify-content:center;z-index:70;padding:20px';
-    div.innerHTML='<a href="'+link+'" style="background:#fff;color:#1f1f1f;padding:14px 22px;border-radius:999px;font-size:17px;text-decoration:none;font-family:inherit">Chat Bash অ্যাপে ফিরে যাও</a>';
+    div.innerHTML='<a href="'+link+'" style="background:#fff;color:#1f1f1f;padding:14px 22px;border-radius:999px;font-size:17px;text-decoration:none;font-family:inherit">'+tr('backToApp')+'</a>';
     document.body.appendChild(div);
     location.href=link;
   }catch(e){}
@@ -1202,17 +1313,18 @@ function wireAppLinks(){
   const handleUrl=async e=>{
     const url=(e&&e.url)||''; const m=url.match(/code=([A-Za-z0-9]+)/); if(!m) return;
     const le=document.getElementById('lerr');
-    if(le){ le.style.color='#e2b3a9'; le.textContent='লগইন হচ্ছে — একটু অপেক্ষা করো…'; }
+    if(le){ le.style.color='#e2b3a9'; le.textContent=tr('loginWait'); }
     try{
       const r=await fetch('/auth/exchange',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({code:m[1]})});
       const d=await r.json();
-      if(d&&d.idToken){
-        await firebase.auth().signInWithCredential(firebase.auth.GoogleAuthProvider.credential(d.idToken));
+      if(d&&d.session){
+        setAppSession(d);
         if(le) le.textContent='';
-      }else if(le){ le.style.color='#f28b82'; le.textContent='লগইন কোডটার মেয়াদ শেষ — আবার সাইন-ইন চাপো।'; }
+        afterSignIn();
+      }else if(le){ le.style.color='#f28b82'; le.textContent=tr('codeExpired'); }
     }catch(err){ console.warn('handoff failed',err);
-      if(le){ le.style.color='#f28b82'; le.textContent='লগইন সম্পূর্ণ হয়নি — আবার চেষ্টা করো।'; } }
+      if(le){ le.style.color='#f28b82'; le.textContent=tr('loginIncomplete'); } }
   };
   Capacitor.Plugins.App.addListener('appUrlOpen',handleUrl);
   Capacitor.Plugins.App.getLaunchUrl().then(u=>{ if(u&&u.url) handleUrl(u); }).catch(()=>{});
@@ -1220,15 +1332,15 @@ function wireAppLinks(){
 
 /* ---------------- capacity gate: 10 inside at a time, 10 min chat per hour ---------------- */
 let admitted=false, presTimer=null;
-function fmtTime(ts){ return new Date(ts*1000).toLocaleTimeString('bn-BD',{hour:'numeric',minute:'2-digit'}); }
+function fmtTime(ts){ return new Date(ts*1000).toLocaleTimeString(locTag(),{hour:'numeric',minute:'2-digit'}); }
 function showBreak(resume){
-  if(resume) $('breakBody').textContent='সবাই যাতে সুযোগ পায়, তাই প্রতি ঘণ্টায় ১০ মিনিট করে চ্যাট করা যায়। আবার কথা বলা যাবে '+fmtTime(resume)+' থেকে।';
+  if(resume) $('breakBody').textContent=tr('breakBodyT').replace('{time}',fmtTime(resume));
   $('breakmodal').hidden=false;
 }
 async function tryEnter(){
-  if(!AUTH_ON||!currentUser) return true;
+  if(!AUTH_ON||(!currentUser&&!sessUser)) return true;
   try{
-    const t=await currentUser.getIdToken();
+    const t=await authTok();
     const r=await fetch('/enter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:t})});
     const d=await r.json().catch(()=>({}));
     if(r.ok&&d.ok){ admitted=true; $('fullmodal').hidden=true; $('breakmodal').hidden=true;
@@ -1242,13 +1354,14 @@ async function tryEnter(){
 }
 $('fullRetry').onclick=()=>tryEnter();
 $('breakOk').onclick=()=>tryEnter();
-document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&currentUser) tryEnter(); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&(currentUser||sessUser)) tryEnter(); });
 
 /* ---------------- auth ---------------- */
+function afterSignIn(){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); tryEnter(); renderAcct(); }
 async function refreshMe(){
-  if(!currentUser) return;
+  if(!currentUser&&!sessUser) return;
   try{
-    const t=await currentUser.getIdToken();
+    const t=await authTok();
     const r=await fetch('/me',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({idToken:t})});
     const d=await r.json(); if(d.remaining){ remaining=d.remaining; renderAcct(); }
@@ -1259,7 +1372,8 @@ if(AUTH_ON){
   wireAppLinks();
   firebase.auth().onAuthStateChanged(u=>{
     currentUser=u;
-    if(u){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); tryEnter(); if(regWanted){ regWanted=false; toast('স্বাগতম! তোমার অ্যাকাউন্ট তৈরি হয়ে গেছে'); } }
+    if(u){ clearAppSession(); loginEl.style.display='none'; refreshMe(); syncHistoryDown(); maybeHandoff(); tryEnter(); if(regWanted){ regWanted=false; toast(tr('welcome')); } }
+    else if(sessUser){ loginEl.style.display='none'; refreshMe(); syncHistoryDown(); tryEnter(); }
     else{ loginEl.style.display='flex'; }
     renderAcct();
   });
@@ -1279,7 +1393,7 @@ if(AUTH_ON){
       const purl='https://chat-bash.vercel.app/?applogin=1';
       try{
         if(window.Capacitor.Plugins&&Capacitor.Plugins.Browser){
-          lerr.style.color='#e2b3a9'; lerr.textContent='ব্রাউজার খুলছে — সেখানে তোমার অ্যাকাউন্টটা বেছে নাও…';
+          lerr.style.color='#e2b3a9'; lerr.textContent=tr('browserOpening');
           await Capacitor.Plugins.Browser.open({url:purl}); return;
         }
       }catch(e){ console.warn('browser open failed',e); }
@@ -1289,34 +1403,35 @@ if(AUTH_ON){
       if(window.Capacitor){ await firebase.auth().signInWithRedirect(prov); }
       else{ await firebase.auth().signInWithPopup(prov); }
     }
-    catch(e){ console.warn('login failed', e); $('lerr').textContent='লগইন হয়নি — আবার চেষ্টা করো।'; }
+    catch(e){ console.warn('login failed', e); $('lerr').textContent=tr('loginFailed'); }
   };
 }else{
   renderAcct();
 }
+applyLang();
 renderAcct(); renderHist();
 
 /* ---------------- submit ---------------- */
 form.onsubmit=async e=>{
   e.preventDefault();
   const text=q.value.trim(); if(!text) return;
-  if(AUTH_ON && !currentUser){ loginEl.style.display='flex'; return; }
+  if(AUTH_ON && !currentUser && !sessUser){ loginEl.style.display='flex'; return; }
   q.value=''; syncSend(); addUser(text); send.disabled=true;
   chipsEl.style.display='none';
-  const wait=addBot('ভাবছি '); wait.classList.add('dots');
-  wait.querySelector('.txt').innerHTML='ভাবছি <span>.</span><span>.</span><span>.</span>';
+  const wait=addBot(tr('thinking')+' '); wait.classList.add('dots');
+  wait.querySelector('.txt').innerHTML=tr('thinking')+' <span>.</span><span>.</span><span>.</span>';
   const idx=pairs.length;
   try{
     const {status,data}=await ask(text,pairs);
     wait.classList.remove('dots');
-    if(status===401){ setRich(wait,'লগইনের মেয়াদ শেষ — আবার লগইন করো।');
-      if(AUTH_ON) loginEl.style.display='flex'; }
+    if(status===401){ setRich(wait,tr('loginExpired'));
+      clearAppSession(); if(AUTH_ON) loginEl.style.display='flex'; renderAcct(); }
     else if(data.error==='session_over'){ setRich(wait,data.reply); admitted=false; if(presTimer){clearInterval(presTimer); presTimer=null;} showBreak(data.resume); if(data.remaining){remaining=data.remaining; renderAcct();} }
     else if(status===429){ setRich(wait,data.reply); if(data.remaining){remaining=data.remaining; renderAcct();} }
     else if(data.reply){ typeReply(wait,data.reply,()=>{ pairs.push({u:text,a:data.reply,f:''}); attachActions(wait,idx); persist(); });
       if(data.remaining){remaining=data.remaining; renderAcct();} }
-    else setRich(wait,'কিছু একটা সমস্যা হয়েছে।');
-  }catch(err){ wait.classList.remove('dots'); setRich(wait,'নেটওয়ার্কে সমস্যা — আবার চেষ্টা করো।'); }
+    else setRich(wait,tr('somethingWrong'));
+  }catch(err){ wait.classList.remove('dots'); setRich(wait,tr('netRetry')); }
   send.disabled=false; focusQ();
 };
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
@@ -1393,9 +1508,11 @@ def _icon(b64):
 
 # ---------------- legal pages ----------------
 
-def _legal_page(title, body_html):
+def _legal_page(title, body_html, lang="en"):
+    back = "← Chat Bash-এ ফিরে যাও" if lang == "bn" else "← Back to Chat Bash"
+    eff = "কার্যকর: ১৬ নভেম্বর ২০২৬" if lang == "bn" else "Effective: 16 November 2026"
     return f"""<!DOCTYPE html>
-<html lang="bn"><head><meta charset="utf-8">
+<html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} — Chat Bash</title>
 <style>
@@ -1409,9 +1526,10 @@ def _legal_page(title, body_html):
   .date{{color:#dda79d;font-size:13px}}
   .back{{display:inline-block;margin-bottom:8px;text-decoration:none}}
 </style></head><body><div class="wrap">
-<a class="back" href="/">← Chat Bash-এ ফিরে যাও</a>
+<a class="back" href="/">{back}</a>
+<p class="date"><a href="?lang=en">English</a> · <a href="?lang=bn">বাংলা</a></p>
 <h1>{title}</h1>
-<p class="date">কার্যকর: ১৬ নভেম্বর ২০২৬</p>
+<p class="date">{eff}</p>
 {body_html}
 </div></body></html>"""
 
@@ -1463,14 +1581,74 @@ TERMS_BODY = """
 """
 
 
+def _pick_lang():
+    lang = request.args.get("lang") or request.cookies.get("cb_lang") or "en"
+    return "bn" if lang == "bn" else "en"
+
+
+def _legal_response(title_en, title_bn, body_en, body_bn):
+    lang = _pick_lang()
+    resp = make_response(_legal_page(title_bn if lang == "bn" else title_en,
+                                     body_bn if lang == "bn" else body_en, lang))
+    if request.args.get("lang"):
+        resp.set_cookie("cb_lang", lang, max_age=365 * 24 * 3600, path="/", samesite="Lax")
+    return resp
+
+
 @app.get("/privacy")
 def privacy():
-    return _legal_page("প্রাইভেসি নীতি", PRIVACY_BODY)
+    return _legal_response("Privacy Policy", "প্রাইভেসি নীতি", PRIVACY_BODY_EN, PRIVACY_BODY)
 
 
 @app.get("/terms")
 def terms():
-    return _legal_page("শর্তাবলি", TERMS_BODY)
+    return _legal_response("Terms of Service", "শর্তাবলি", TERMS_BODY_EN, TERMS_BODY)
+PRIVACY_BODY_EN = """
+<h2>1. What information we collect</h2>
+<p>Only as much as Chat Bash needs to run: (a) your name and email address from Google sign-in; (b) the questions you send and the AI's answers, stored as chat history on your account; (c) how many messages you have sent with each model in each two-day period (to keep track of the free limit). We never receive or store your Google password — sign-in happens entirely through Google's own secure system.</p>
+<h2>2. Why we use it</h2>
+<p>Only to provide the service: recognising you, showing your history, applying the free limit and preventing abuse.</p>
+<h2>3. AI processing</h2>
+<p>To generate answers, your questions are processed using cloud-based AI technology. So it is best not to write personal or sensitive information about yourself or others (such as passwords, financial details or addresses) in your questions.</p>
+<h2>4. Sharing information</h2>
+<p>We do not sell your information and do not give it to anyone for advertising. Your information is not disclosed to third parties except where legally required.</p>
+<h2>5. Storage and deletion</h2>
+<p>Your chat history is stored with your account so you can view it by signing in from any device. You can ask for your stored history and usage counts to be deleted at any time by emailing <b>nasheedulislam@gmail.com</b> — we will delete them.</p>
+<h2>6. Cookies and local storage</h2>
+<p>Your browser's local storage is used to keep your sign-in state and a local cache of your chats. No advertising-tracking cookies are used.</p>
+<h2>7. Security</h2>
+<p>All connections are encrypted (HTTPS). Even so, remember that no internet service is completely risk-free.</p>
+<h2>8. Children</h2>
+<p>This service is not for children under 13.</p>
+<h2>9. Changes</h2>
+<p>If this policy changes, the update will be posted on this page.</p>
+<h2>10. Contact</h2>
+<p>For any privacy question, email: <b>nasheedulislam@gmail.com</b></p>
+"""
+
+TERMS_BODY_EN = """
+<h2>1. About the service</h2>
+<p>Chat Bash is a completely free AI chat service, currently at an experimental (demo) stage. By using the service you are taken to accept these terms.</p>
+<h2>2. Account</h2>
+<p>You need to sign in with a Google account to use the service. Keeping your own account secure is your responsibility.</p>
+<h2>3. Free limits</h2>
+<p>Each model gives a set number of free messages every two days. To keep things fair for everyone, at most 10 users can be in the app at the same time, and chatting is limited to 10 minutes per hour. These limits and the list of models may change at any time.</p>
+<h2>4. Accuracy of answers</h2>
+<p>AI answers can be wrong. Do not make decisions on important matters based only on these answers without verifying them. Answers from this service are not medical, legal or financial advice — consult the relevant professional for such needs.</p>
+<h2>5. Prohibited use</h2>
+<p>You may not use this service for illegal activity, creating harmful or hateful content, spam, harming others, breaking the service's security, or trying to bypass the free limits. Accounts doing so may be blocked.</p>
+<h2>6. Limitation of liability</h2>
+<p>The service is provided free of charge, "as is". To the extent permitted by applicable law, Chat Bash and its creator are not liable for any loss arising from use of the service.</p>
+<h2>7. Changes or shutdown</h2>
+<p>Any part of the service may be changed, suspended or shut down completely at any time, without prior notice.</p>
+<h2>8. Intellectual property</h2>
+<p>The Chat Bash name, logo and design are the property of its creator. What you write (your questions) remains yours.</p>
+<h2>9. Governing law</h2>
+<p>These terms are interpreted and applied under the laws of Bangladesh.</p>
+<h2>10. Contact</h2>
+<p>For any question, email: <b>nasheedulislam@gmail.com</b></p>
+"""
+
 
 
 @app.get("/icon-192.png")
@@ -1495,12 +1673,51 @@ def health():
                     "keys": {"gemini": bool(GEMINI_API_KEY), "groq": bool(GROQ_API_KEY)}})
 
 
+# ---------------- app session tokens (browser sign-in handoff) ----------------
+# The app cannot turn a Firebase ID token into a Firebase session, so after
+# the one-time-code exchange the server issues its own signed session token
+# (30 days). The signing key is derived from the Upstash token, never stored.
+
+def _session_secret():
+    return hashlib.sha256(("cb-session:" + UPSTASH_TOKEN).encode()).digest()
+
+
+def make_session(user):
+    payload = {"uid": user["uid"], "email": user.get("email", ""),
+               "name": user.get("name", ""),
+               "exp": int(time.time()) + 30 * 24 * 3600}
+    raw = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    sig = hmac.new(_session_secret(), raw.encode(), hashlib.sha256).hexdigest()
+    return raw + "." + sig
+
+
+def verify_session(token):
+    if not UPSTASH_TOKEN:
+        return None
+    try:
+        raw, sig = (token or "").split(".", 1)
+        good = hmac.new(_session_secret(), raw.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(good, sig):
+            return None
+        payload = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)))
+        if int(payload.get("exp", 0)) < int(time.time()):
+            return None
+        return {"uid": payload["uid"], "email": payload.get("email", ""),
+                "name": payload.get("name", "")}
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def authed_user(req):
     """Return user dict; 'DEV' user when auth disabled; None when invalid."""
     if not AUTH_REQUIRED:
         return {"uid": "dev", "email": "", "name": ""}
     data = req.get_json(force=True, silent=True) or {}
-    return verify_id_token(data.get("idToken", ""))
+    token = data.get("idToken", "")
+    user = verify_id_token(token)
+    if user is None and token:
+        user = verify_session(token)
+    return user
 
 
 @app.post("/me")
@@ -1511,16 +1728,16 @@ def me():
     return jsonify({"email": user["email"], "remaining": remaining_map(user["uid"])})
 
 
-def login_code_create(user, id_token):
+def login_code_create(user):
     """One-time code so a browser sign-in can hand the session to the app.
-    The payload carries the browser session's Firebase ID token (max 1h life);
-    the code itself lives 5 minutes and is single-use."""
+    The code lives 5 minutes, is single-use, and the app exchanges it for a
+    server session token (see make_session)."""
     if not HISTORY_ON:
         return None
     try:
         code = "".join(secrets.choice("ABCDEFGHJKMNPQRSTUVWXYZ23456789") for _ in range(8))
         payload = json.dumps({"uid": user["uid"], "email": user["email"],
-                              "name": user["name"], "tok": id_token})
+                              "name": user["name"]})
         _redis("SET", f"cblogin:{code}", payload)
         _redis("EXPIRE", f"cblogin:{code}", "300")
         return code
@@ -1534,8 +1751,7 @@ def auth_code():
     user = authed_user(request)
     if user is None:
         return jsonify({"error": "unauthorized"}), 401
-    data = request.get_json(force=True, silent=True) or {}
-    code = login_code_create(user, data.get("idToken", ""))
+    code = login_code_create(user)
     if not code:
         return jsonify({"error": "unavailable"}), 503
     return jsonify({"code": code})
@@ -1553,8 +1769,10 @@ def auth_exchange():
             return jsonify({"error": "expired"}), 404
         _redis("DEL", f"cblogin:{code}")
         info = json.loads(raw)
-        return jsonify({"uid": info["uid"], "email": info["email"],
-                        "name": info["name"], "idToken": info.get("tok", "")})
+        user = {"uid": info["uid"], "email": info.get("email", ""),
+                "name": info.get("name", "")}
+        return jsonify({"uid": user["uid"], "email": user["email"],
+                        "name": user["name"], "session": make_session(user)})
     except Exception as e:  # noqa: BLE001
         print("login exchange failed:", e, flush=True)
         return jsonify({"error": "failed"}), 500
@@ -1595,18 +1813,18 @@ def history_save_route():
 def chat():
     data = request.get_json(force=True, silent=True) or {}
     message = (data.get("message") or "").strip()
+    lang = "bn" if data.get("lang") == "bn" else "en"
     if not message:
-        return jsonify({"reply": "আগে একটা প্রশ্ন লেখো তো!"})
+        return jsonify({"reply": canned(lang, "empty")})
     user = authed_user(request)
     if user is None:
-        return jsonify({"reply": "আগে Google দিয়ে লগইন করো, তারপর চ্যাট করা যাবে।"}), 401
+        return jsonify({"reply": canned(lang, "login_first")}), 401
     allowed, resume = session_touch(user["uid"])
     if not allowed:
         presence_release(user["uid"])
         return jsonify({
             "error": "session_over",
-            "reply": "এই ঘণ্টার ১০ মিনিট চ্যাটিং শেষ! সবার সুযোগের জন্য একটু বিরতি নাও — "
-                     "কিছুক্ষণ পর আবার কথা বলা যাবে।",
+            "reply": canned(lang, "session_over"),
             "resume": resume,
             "remaining": remaining_map(user["uid"]),
         }), 403
@@ -1617,15 +1835,14 @@ def chat():
         used = credits_used(user["uid"], model_key)
         if used >= MODELS[model_key]["cap"]:
             return jsonify({
-                "reply": f"এই মডেলে ({MODELS[model_key]['name']}) এই পর্বের ফ্রি মেসেজ শেষ! "
-                         "দুই দিন পর আবার নতুন লিমিট পাবে — ততক্ষণ অন্য মডেলটা ব্যবহার করে দেখো।",
+                "reply": canned(lang, "limit", name=MODELS[model_key]['name']),
                 "remaining": remaining_map(user["uid"]),
             }), 429
     try:
         reply = respond(message, data.get("history") or [], model_key)
     except Exception as e:  # noqa: BLE001 — details stay in the server log only
         print("LLM error:", e, flush=True)
-        return jsonify({"reply": GENERIC_ERROR, "remaining": remaining_map(user["uid"])})
+        return jsonify({"reply": canned(lang, "generic"), "remaining": remaining_map(user["uid"])})
     if CREDITS_ON:
         credits_consume(user["uid"], model_key)
     return jsonify({"reply": reply, "remaining": remaining_map(user["uid"])})
