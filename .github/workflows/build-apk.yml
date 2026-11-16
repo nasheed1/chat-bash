@@ -60,6 +60,27 @@ jobs:
           print('signing patched')
           PYEOF
 
+      - name: Add deep-link intent filter (chatbash://login returns sign-in to the app)
+        working-directory: android-app
+        run: |
+          python3 - <<'PYEOF'
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p).read()
+          if 'chatbash' not in s:
+              filt = '''<intent-filter>
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="chatbash" android:host="login" />
+              </intent-filter>
+              '''
+              i = s.index('.MainActivity')
+              j = s.index('</activity>', i)
+              s = s[:j] + filt + s[j:]
+              open(p, 'w').write(s)
+          print('manifest patched')
+          PYEOF
+
       - name: Generate launcher icons
         working-directory: android-app
         run: npx capacitor-assets generate --android
